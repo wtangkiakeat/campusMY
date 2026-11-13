@@ -1,0 +1,10 @@
+export type Meeting = {day: string; start: number; end: number; weekNumbers?: number[]; room?: string; lecturer?: string; weeks?: string};
+export type Section = {id:string;type:string;group:string;meetings:Meeting[]};
+export type Offering = {id:string;course_id:string;campus:string;faculty:string;term:string;source?:string;sections:Section[]};
+export type Course = {id:string;code:string;name:string;campus?:string;faculty?:string;credits?:number|null;years?:string[];offering_count?:number;offerings?:Offering[]};
+export type Content = {id:string;kind?:'review'|'tip'|'comment';course_id?:string;campus:string;term:string;body:string;advice?:string;overall?:number;difficulty?:number;workload?:number;assessment_type?:string;status:string;created_at:string;helpful_count?:number;has_voted?:boolean;is_mine?:boolean;version?:number;comment_count?:number};
+export type Comment = {id:string;body:string;created_at:string;is_mine?:boolean;version?:number;status?:string};
+export type Me = {id:string;role:string;membership?:{status:string;verified:boolean;expires_at?:string}|null;content?:Content[];mfa?:boolean;notifications?:{id:string;body:string;created_at:string}[]};
+export type PlanEntry = {id:string;offering?:string;course_id?:string;sectionIds:string[];manual?:boolean;unresolved?:boolean;name:string;code:string;meetings:Meeting[]};
+export type Plan = {id:string;name:string;campus:string;term:string;entries:PlanEntry[];version?:number};
+export type PageResult<T> = {items:T[];total:number;limit?:number;offset?:number;stats?:{count:number;average:number|null}};

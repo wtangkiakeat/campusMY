@@ -1,0 +1,7 @@
+{
+  "original_filename": "data.js",
+  "original_bytes": 2939575,
+  "original_file_sha256": "00e7c4f3335dc87a8e250fd7269ea235feb8c601de5b0a866704a9a456a5c2e8",
+  "canonical_payload_sha256": "43426e5798f4673e658d8c125ac9d196c094077cd3469400b2f07e4a24b98af8",
+  "note": "Strict JSON extracted without executing the JavaScript assignment."
+}

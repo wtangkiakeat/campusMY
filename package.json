@@ -1,0 +1,29 @@
+{
+  "name": "campusmy",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/web"
+  ],
+  "scripts": {
+    "dev": "python3 scripts/dev.py",
+    "dev:web": "npm run dev --workspace=@campusmy/web",
+    "build": "npm run build --workspace=@campusmy/web",
+    "typecheck": "npm run typecheck --workspace=@campusmy/web",
+    "test:api": "services/api/.venv/bin/python -m pytest tests/backend tests/data tests/security tests/operations -q",
+    "test:browser": "playwright test --config tests/browser/playwright.config.ts",
+    "test:frontend": "node --experimental-strip-types --test tests/frontend/*.test.mjs",
+    "test:postgres": "node scripts/test-postgres.mjs",
+    "test": "npm run test:api && npm run test:frontend && npm run typecheck && npm run build",
+    "check:all": "python3 scripts/check_all.py",
+    "test:members": "node tests/member-browser/run.mjs",
+    "check:ui": "python3 scripts/check_all.py --ui-only"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.0",
+    "embedded-postgres": "^17.11.0-beta.19"
+  },
+  "engines": {
+    "node": ">=22.18.0"
+  }
+}

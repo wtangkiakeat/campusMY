@@ -1,0 +1,7 @@
+'use client';
+import {useEffect,useState} from 'react';
+import {useApp} from '@/components/providers';
+import {api,json,message} from '@/lib/api';
+import {PageHeader,Empty,ErrorState,MemberGate,Loading} from '@/components/ui';
+type Notification={id:string;message:string;created_at:string;read:boolean};
+export default function NotificationsPage(){const {me}=useApp(),[items,setItems]=useState<Notification[]|null>(null),[error,setError]=useState(''),[refresh,setRefresh]=useState(0);useEffect(()=>{if(!me?.membership?.verified)return;api<{items:Notification[]}>('/notifications').then(d=>{setItems(d.items);setError('');}).catch(e=>setError(message(e)));},[me,refresh]);return <><PageHeader title="Notifications" description="Replies, decisions, and the updates worth knowing."/>{!me?.membership?.verified?<MemberGate signedIn={Boolean(me)}/>:error?<ErrorState error={error} retry={()=>setRefresh(x=>x+1)}/>:!items?<Loading/>:items.length?<div className="notification-list">{items.map(n=><article key={n.id} className={n.read?'notification read':'notification'}><div><p>{n.message}</p><small>{new Date(n.created_at).toLocaleString('en-MY')}</small></div>{!n.read&&<button className="button small" onClick={async()=>{try{await api(`/notifications/${n.id}`,{method:'PATCH',body:json({read:true})});setRefresh(x=>x+1);}catch(e){setError(message(e));}}}>Mark read</button>}</article>)}</div>:<Empty title="You’re all caught up." body="Updates about your contributions will appear here."/>}</>;}

@@ -1,0 +1,50 @@
+name: Application checks
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install uv
+      - run: bash scripts/setup.sh
+      - run: npm run test:api
+      - run: npm run test:frontend
+      - run: npm run typecheck
+      - run: npm run build
+      - run: npm run test:postgres
+      - run: npx playwright install --with-deps chromium
+      - name: Start local services
+        run: |
+          npm run dev > .runtime/services.log 2>&1 &
+          curl --fail --retry 25 --retry-delay 1 --retry-connrefused http://127.0.0.1:8000/health/ready
+          curl --fail --retry 25 --retry-delay 1 --retry-connrefused http://127.0.0.1:3000/courses > /dev/null
+      - run: npm run test:browser
+        env:
+          PLAYWRIGHT_CHANNEL: chromium
+      - run: npm run test:members
+        env:
+          PLAYWRIGHT_CHANNEL: chromium
+      - run: npm run test:members
+        env:
+          PLAYWRIGHT_CHANNEL: chromium
+          MEMBER_BROWSER_VIEWPORT: mobile
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: failure-evidence
+          path: |
+            test-results/
+            playwright-report/
+            .runtime/services.log

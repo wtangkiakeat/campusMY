@@ -1,0 +1,13 @@
+**/node_modules
+**/.next
+**/.venv
+**/__pycache__
+**/.runtime
+**/.pytest_cache
+**/.env
+**/.env.local
+**/.env.*.local
+.git
+test-results
+playwright-report
+.taste-skill

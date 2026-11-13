@@ -1,0 +1,1 @@
+"""CampusMY application API."""

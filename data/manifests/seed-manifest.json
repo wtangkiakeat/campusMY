@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "input_sha256": "43426e5798f4673e658d8c125ac9d196c094077cd3469400b2f07e4a24b98af8",
+  "source_review_label": "14 November 2026",
+  "generator": "scripts/import_seed.py",
+  "counts": {
+    "courses": 689,
+    "offerings": 182,
+    "sections": 832,
+    "meetings": 1087,
+    "curriculum_observations": 7748,
+    "uncoded_curriculum_observations": 7039,
+    "programmes": 137,
+    "rooms": 66,
+    "sources": 234,
+    "registered_sources": 13,
+    "identity_conflicts": 1,
+    "observations": 10052,
+    "legacy_mappings": 9849
+  },
+  "identity_conflicts": [
+    {
+      "course_id": "9d21d391-dbd8-595e-8105-b8efd27251d2",
+      "campus": "Sungai Long",
+      "code": "UJMZ32110",
+      "names": [
+        "PROJECT I",
+        "PROJECT II"
+      ],
+      "observation_ids": [
+        "CAT-6760",
+        "CAT-6763",
+        "CODE-UJMZ32110"
+      ]
+    }
+  ],
+  "warnings": [
+    "Dataset is a dated snapshot, not a live or complete registration database.",
+    "Course attendance in student reviews is self reported.",
+    "Uncoded curriculum observations require reviewed mapping; they are not separate canonical courses.",
+    "Raw lecturer labels are preserved and are not authoritative lecturer identities.",
+    "No remote URLs were fetched. Missing document hashes/metadata remain unknown."
+  ]
+}
