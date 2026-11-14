@@ -1,34 +1,73 @@
 # CampusMY — your campus companion
 
-The user's original CampusMY project, version 3.0.0. The Yee branch preview is separate and has not been merged.
+**Live website: [campusmy-website.vercel.app](https://campusmy-website.vercel.app/)**
+
+CampusMY brings UTAR course snapshots, a personal timetable and account settings into one responsive website.
+
+## Live deployment and automatic updates
+
+- Hosting: Vercel
+- Connected repository: wtangkiakeat/campusMY
+- Production branch: campusmy-website
+- Application preset: Other
+- Root directory: ./
+- No build or dependency installation is required for this branch's checked-in HTML, CSS and JavaScript files.
+
+Commits pushed to campusmy-website automatically trigger Vercel deployments. A successful deployment updates the live website. Saving local files alone does not upload changes. Yee is a separate branch and is not the production branch for this website.
+
+### Update from your computer
+
+Before editing, open PowerShell in your local CampusMY-website folder and pull the latest version:
+
+    git pull --ff-only
+
+After making and checking your changes:
+
+    git add .
+    git commit -m "Describe your changes"
+    git push
+
+You can also edit a file directly on the campusmy-website branch in GitHub and commit it there. Check the Vercel dashboard for deployment status and any errors.
 
 ## Run locally
 
-Serve the self-contained dist folder with a static HTTP server:
+From this branch's root folder, serve the website with Python:
 
-    python -m http.server 4173 --bind 127.0.0.1 --directory dist
+    python -m http.server 4173 --bind 127.0.0.1
 
-Open http://127.0.0.1:4173/. Authentication needs an HTTP/HTTPS origin and matching Supabase redirect URLs. No frontend build is needed to run the checked-in app. To refresh the official browser SDK, run npm ci and npm run build:sdk.
+Open http://127.0.0.1:4173/. The index.html file is in the root of this branch; there is no dist folder here. Authentication requires HTTP/HTTPS and matching Supabase redirect URLs.
 
-## Pages
+## Pages and features
 
-- Home: personal week summary, functional todos, campus links, favourite boards, and empty sections ready for real posts/reviews.
-- Timetable: the existing campus/faculty, Name/Prof/Code keyword, sort, time-grid, year/type/credit filters, component group selections, lecturer/room details, teaching-week clash checks, manual classes, multiple plans and JSON backup/import.
-- My page: user ID/profile, email status, password reset/change, secure email change, theme, notification preferences, interest keywords, default board, support and sign-out.
-- Top navigation: search, notifications and My page. Mobile navigation: Home, Timetable, Boards, My page.
+- Home: personal week summary, todos, campus links and favourite boards.
+- Timetable: campus/faculty filters, Name/Prof/Code search, sorting, time selection, year/type/credit filters, lecture/tutorial/practical groups, lecturer and classroom details, teaching-week clash checks, manual classes, multiple plans and JSON backup/import.
+- My page: user ID/profile, email verification, confirmation resend, password reset/change, email change, appearance, notification preferences, interest keywords and sign-out.
+- Navigation: top search, notifications and account menu; mobile Home, Timetable, Boards and My page tabs.
 
-Supabase Auth manages login, passwords and email confirmation. Profiles/settings, account todos and explicit online timetable saves use the supplied Supabase project. Guest plans stay separate on this device. Saving online checks the last loaded version; loading asks before replacing a local account copy. Account switching clears pending private UI state. Activity notifications currently remain on the device and are labeled as such.
+Boards, popular posts and recent reviews have empty states until real community content is available. No student posts, ratings or reviews are fabricated.
 
 ## Supabase setup
 
-The browser-safe Project URL and publishable key are in dist/config.js. Run supabase/setup.sql in the project's SQL Editor, then follow supabase/README.md for redirect URLs, Confirm email, Secure email change and SMTP. No passwords, secret keys, service_role keys or sessions belong in source control. Private tables use account-owner RLS.
+Supabase Auth manages login, passwords and email confirmation. The browser-safe project settings are in config.js. Run CampusMY-supabase-setup.sql in your project's SQL Editor and follow Supabase-setup.md.
 
-Live connection checks confirmed that the project responds, email/password auth is enabled, email confirmation is required, and anonymous access to the private profile table is denied. Actual signup mail delivery, authenticated CRUD and two-account RLS acceptance testing still need your own verified test accounts. Provider and hosting setup must not be reported as fully verified from source tests alone.
+In Supabase → Authentication → URL Configuration:
+
+- Set Site URL to https://campusmy-website.vercel.app/
+- Add https://campusmy-website.vercel.app/ to Redirect URLs.
+- Keep http://127.0.0.1:4173/ and http://localhost:4173/ for local development if needed.
+
+Keep Confirm email and Secure email change enabled, and configure SMTP before inviting real users. Never put a database password, secret key or service_role key in the website.
+
+Private account data uses campusmy_profiles, campusmy_planners and campusmy_todos with owner-based row-level security. Guest timetables stay separate on the device. Signed-in users explicitly save/load online plans; loading asks before replacing a local account copy. Activity notifications currently remain on the device.
+
+The live website and Supabase connection have been checked, and anonymous access to all three private tables is denied. Actual email delivery, authenticated account operations and two-account row isolation still need acceptance testing with verified accounts.
 
 ## Course data
 
-832 class groups, 1,087 meetings, 182 trimester offering snapshots, and 136 distinct codes with meeting data. The wider catalogue includes 677 distinct codes and 137 programme records. Meeting snapshots cover selected Kampar sources in February, June and October 2026; this is not a complete live registration database. Unverified fields remain blank. Source links and teaching weeks are retained. No student reviews, posts, ratings, ads or popularity counts are fabricated.
+The reviewed collection contains 832 class groups, 1,087 meetings, 182 trimester offering snapshots and 136 distinct course codes with meeting data. The wider catalogue includes 677 distinct codes and 137 programme records.
 
-## Checks and commits
+Meeting snapshots cover selected Kampar sources for February, June and October 2026. This is not a complete live registration database. Unknown fields remain blank; source links and teaching weeks are retained. Confirm availability and registration eligibility with UTAR.
 
-Run npm test for source-data integrity, week-aware clashes, account input/key validation, pending-write isolation after sign-out, and cloud overwrite protection. Browser checks covered desktop/mobile layouts, home-task persistence, top search, timetable addition/removal and appearance settings. See CHANGELOG.md for milestones. AGENTS.md requires a commit for each substantial addition.
+## Project files
+
+This branch contains the deployable website. Full development source, automated test scripts and the SDK update tooling are maintained in the separate development project. No npm commands are required to serve this website branch. Commit significant changes with a clear message before pushing.
