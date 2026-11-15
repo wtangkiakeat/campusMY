@@ -44,6 +44,8 @@ Open http://127.0.0.1:4173/. The index.html file is in the root of this branch; 
 - Home: personal week summary, todos, campus links and favourite boards.
 - Timetable: campus/faculty filters, Name/Prof/Code search, sorting, time selection, year/type/credit filters, lecture/tutorial/practical groups, lecturer and classroom details, teaching-week clash checks, manual classes, multiple plans and JSON backup/import.
 - My page: user ID/profile, email verification, confirmation resend, password reset/change, email change, appearance, notification preferences, interest keywords and sign-out.
+- Appearance opens in the bright (light) theme; the sun/moon button in the header switches to dark, and My page → Appearance offers Light, Dark or System default.
+- Design notes and screenshots for the burgundy-and-gold redesign are in docs/REDESIGN.md.
 - Friends: QR/link invitations, exact user-ID search, accepted requests and optional read-only timetable sharing.
 - Course spaces: ratings, lecturer reviews, opt-in classmates and organiser-approved study groups.
 - Chat: private conversations between accepted friends, history and unread counts.
@@ -53,7 +55,7 @@ Boards and popular posts remain unavailable. Recent reviews show real saved cont
 
 ## Friends, reviews and study groups
 
-Press **＋** on the timetable to open the existing class explorer and filters. Expand a class to choose groups, **Add to timetable**, read **Reviews** or **Find classmates**. Click a class already on your timetable to see room/lecturer details, **Rate & review**, or open its **Classmates & study groups**.
+Press **Add classes** on the timetable to open the existing class explorer and filters. Expand a class to choose groups, **Add to timetable**, read **Reviews** or **Find classmates**. Click a class already on your timetable to see room/lecturer details, **Rate & review**, or open its **Classmates & study groups**.
 
 Use **Add friend** to search an exact CampusMY user ID or show a **QR / invitation link**. Links expire after seven days and can be replaced. A signed-in student must send a request and the recipient must accept. An invitation never grants public timetable access. QR images are decoded on the device; the camera starts only on request.
 
@@ -98,6 +100,10 @@ The reviewed collection contains 832 class groups, 1,087 meetings, 182 trimester
 The social lookup combines existing records into 689 campus/code identities and 327 course/trimester/lecturer observations; these are not newly discovered classes.
 
 Meeting snapshots cover selected Kampar sources for February, June and October 2026. This is not a complete live registration database. Unknown fields remain blank; source links and teaching weeks are retained. Confirm availability and registration eligibility with UTAR.
+
+## Tests
+
+`tests/` holds isolated database and browser-side suites that need no Supabase project: `cd tests && npm install && npm test`. They run the project's SQL on PGlite (PostgreSQL in WebAssembly) and the real pages in jsdom. See `tests/README.md` and `docs/RELIABILITY.md` for what they cover and what still needs the live project.
 
 ## Project files
 

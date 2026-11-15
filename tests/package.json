@@ -1,0 +1,15 @@
+{
+  "name": "campusmy-tests",
+  "private": true,
+  "type": "module",
+  "description": "Isolated database and browser-side tests for CampusMY (no Supabase project needed).",
+  "scripts": {
+    "test": "node db.test.mjs && node ui.test.mjs",
+    "test:db": "node db.test.mjs",
+    "test:ui": "node ui.test.mjs"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.16",
+    "jsdom": "^25.0.1"
+  }
+}
