@@ -13,7 +13,7 @@ const schemaMessage='Your Supabase tables are not ready. Run CampusMY-supabase-s
 function dbError(error){if(!error)return;if(['PGRST205','42P01','PGRST202'].includes(error.code))throw Error(schemaMessage);throw Error(error.message||'Supabase could not complete this request.');}
 function stillOwner(user){if(state.user?.id!==user.id)throw Error('Your account changed. Please try again.');}
 function requireUser(){if(!client)throw Error('Supabase is not configured.');if(!state.user)throw Error('Sign in first.');return state.user;}
-function preferences(){const p={theme:'system',notifications:true,defaultBoard:'General',keywords:[],...(state.profile?.preferences||read(key('preferences'),{}))};return {...p,theme:['dark','light','system'].includes(p.theme)?p.theme:'system',keywords:Array.isArray(p.keywords)?p.keywords.filter(x=>typeof x==='string').slice(0,20):[]};}
+function preferences(){const p={theme:'light',notifications:true,defaultBoard:'General',keywords:[],...(state.profile?.preferences||read(key('preferences'),{}))};return {...p,theme:['dark','light','system'].includes(p.theme)?p.theme:'light',keywords:Array.isArray(p.keywords)?p.keywords.filter(x=>typeof x==='string').slice(0,20):[]};}
 function inbox(){const value=read(key('inbox'),[]);return Array.isArray(value)?value.filter(x=>x&&typeof x.id==='string'&&typeof x.title==='string').slice(0,50):[];}
 function notify(title,message=''){if(!preferences().notifications)return;const value=inbox();value.unshift({id:crypto.randomUUID(),title,message,date:new Date().toISOString(),read:false});write('inbox',value.slice(0,50));emit();}
 async function refresh(){const version=++generation;state.problem='';

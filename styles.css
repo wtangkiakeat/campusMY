@@ -3,7 +3,7 @@
    Design tokens, typography, timetable planner, class explorer and dialogs.
    Palette is derived from the supplied logo: burgundy #8a2634 → #6b1a25 and
    gold #e8b53a, on warm paper surfaces. Light is the default; dark overrides
-   follow the system preference or the Appearance setting (html[data-theme]).
+   apply when Appearance is set to Dark, or to System on a dark device (html[data-theme]).
    ========================================================================== */
 
 :root{
@@ -119,57 +119,6 @@ html[data-theme=dark]{
   --shadow-md:0 2px 4px rgba(0,0,0,.35),0 20px 50px -16px rgba(0,0,0,.6);
   --shadow-lg:0 30px 90px -20px rgba(0,0,0,.7);
   --focus:#f0a1a9;
-}
-
-/* Before the Appearance setting is applied, follow the operating system. */
-@media(prefers-color-scheme:dark){
-  html:not([data-theme=light]){
-    color-scheme:dark;
-    --bg:#16100e;
-    --surface:#201816;
-    --panel:#201816;
-    --sheet:#231b19;
-    --soft:#2a2120;
-    --raised:#362b28;
-    --border:#3a2f2b;
-    --border-strong:#4d3e39;
-    --line:#2d2422;
-    --grid:rgba(232,181,58,.035);
-    --text:#f3eadf;
-    --warm:#e6dacb;
-    --quiet:#b4a496;
-    --muted:#b4a496;
-    --faint:#86776a;
-    --brand:#a02f3f;
-    --brand-strong:#b83a4b;
-    --brand-ink:#fff7ee;
-    --accent:#f0a1a9;
-    --accent-hover:#f7bcc2;
-    --accent-soft:#3b2528;
-    --accent-line:#5d3339;
-    --red-dim:#3b2528;
-    --gold:#e8b53a;
-    --gold-text:#e8c267;
-    --gold-soft:#3a301b;
-    --gold-line:#5a4a26;
-    --success:#a7c598;
-    --success-soft:#253120;
-    --success-line:#3d5236;
-    --danger:#f2978b;
-    --danger-soft:#3d2320;
-    --danger-line:#5e332d;
-    --info:#9fbad0;
-    --info-soft:#1f2b35;
-    --plum:#c9a9d9;      --plum-soft:#30263a;
-    --sage:#a9c39a;      --sage-soft:#26301f;
-    --sand:#e2c272;      --sand-soft:#3a301b;
-    --slate:#9fbad0;     --slate-soft:#1f2b35;
-    --terra:#e9a08e;     --terra-soft:#3b2622;
-    --shadow-sm:0 1px 2px rgba(0,0,0,.3),0 8px 24px -12px rgba(0,0,0,.5);
-    --shadow-md:0 2px 4px rgba(0,0,0,.35),0 20px 50px -16px rgba(0,0,0,.6);
-    --shadow-lg:0 30px 90px -20px rgba(0,0,0,.7);
-    --focus:#f0a1a9;
-  }
 }
 
 /* --------------------------------------------------------------------------

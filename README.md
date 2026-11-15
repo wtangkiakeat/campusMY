@@ -44,7 +44,7 @@ Open http://127.0.0.1:4173/. The index.html file is in the root of this branch; 
 - Home: personal week summary, todos, campus links and favourite boards.
 - Timetable: campus/faculty filters, Name/Prof/Code search, sorting, time selection, year/type/credit filters, lecture/tutorial/practical groups, lecturer and classroom details, teaching-week clash checks, manual classes, multiple plans and JSON backup/import.
 - My page: user ID/profile, email verification, confirmation resend, password reset/change, email change, appearance, notification preferences, interest keywords and sign-out.
-- Appearance follows the device setting by default (light or dark); a saved Light or Dark choice in My page still overrides it.
+- Appearance opens in the bright (light) theme; the sun/moon button in the header switches to dark, and My page → Appearance offers Light, Dark or System default.
 - Design notes and screenshots for the burgundy-and-gold redesign are in docs/REDESIGN.md.
 - Friends: QR/link invitations, exact user-ID search, accepted requests and optional read-only timetable sharing.
 - Course spaces: ratings, lecturer reviews, opt-in classmates and organiser-approved study groups.

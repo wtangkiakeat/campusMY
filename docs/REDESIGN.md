@@ -4,20 +4,20 @@ Branch: `redesign/campus-identity`, based on `campusmy-website`.
 
 CampusMY now has a visual identity of its own, built from the supplied logo:
 burgundy `#8a2634 → #6b1a25` for brand actions and gold `#e8b53a` for accents,
-on warm paper surfaces with a faint planner grid. Light mode is the default,
-dark mode is a maroon-tinted charcoal, and both are driven by one set of
-design tokens. Every existing feature, filter, privacy control and Supabase
+on warm paper surfaces with a faint planner grid. The bright (light) theme is
+the default, dark mode is a maroon-tinted charcoal, a sun/moon button in the
+header flips between them, and both are driven by one set of design tokens. Every existing feature, filter, privacy control and Supabase
 call is untouched; the change is presentation plus a few small quality-of-life
 improvements on the Home page.
 
 ## Main design choices
 
 **One token system, two themes.** `styles.css` defines colour, radius and
-shadow tokens once (`:root` = light). `html[data-theme=dark]` and the
-`prefers-color-scheme: dark` fallback override the same tokens, so the three
-stylesheets no longer carry hand-tuned dark hex values for every component.
-Before the Appearance setting is applied, the page follows the operating
-system; a saved Light/Dark choice in My page still wins.
+shadow tokens once (`:root` = light). `html[data-theme=dark]` overrides the same tokens, so the
+three stylesheets no longer carry hand-tuned dark hex values for every
+component. The app opens bright by default; the header toggle and the
+Appearance setting in My page (Light / Dark / System default) switch themes
+and save the choice to the same preference.
 
 **Brand roles are explicit.** `--brand` is the burgundy *fill* (primary
 buttons, selected group pills, badges, "mine" chat bubbles) and always carries
@@ -122,14 +122,14 @@ disables the page transition and hover motion.
 
 | File | Change |
 | --- | --- |
-| `index.html` | Google Fonts link, light/dark `theme-color`, more SVG sprite symbols (plus, share, more, clock, pin, lock, grid, chat…), labelled timetable action buttons, SVG icons instead of glyphs, chat icon in the mobile nav, `v=4.1.0` cache-busting. |
+| `index.html` | Google Fonts link, header sun/moon theme toggle, more SVG sprite symbols (plus, share, more, clock, pin, lock, grid, chat…), labelled timetable action buttons, SVG icons instead of glyphs, chat icon in the mobile nav, `v=4.1.0` cache-busting. |
 | `styles.css` | Rewritten on tokens: light/dark palettes, base type, timetable planner & calendar (hour rows/axis unchanged at 54px / 43px / 35px), class explorer, course cards, dialogs, forms, responsive rules. |
 | `shell.css` | Rewritten: header, Home (incl. today list), quick links, banner, boards/highlights, My page, notifications, boards page, account forms, bottom nav. Per-component light overrides removed (tokens handle it). |
 | `social.css` | Rewritten: friends panel, sharing status, social dialogs, read-only view, course space, reviews, chat, shared calendar (38px rows / 30px axis unchanged). |
-| `shell.js` | Home week widget lists today's classes; to-dos sorted incomplete-first then by due date. |
+| `shell.js` | Home week widget lists today's classes; to-dos sorted incomplete-first then by due date; header theme toggle saves the Appearance preference and keeps `theme-color` in sync. |
 | `app.js` | Clock/pin/calendar/search SVG icons in cards and empty states; brand-harmonised class colours. |
 | `social.js` | SVG icons for the friend search and empty-state sparkle. |
-| `account.js` | Default Appearance preference `system` instead of `dark` (saved preferences unchanged). |
+| `account.js` | Default Appearance preference `light` (bright) instead of `dark`; saved preferences are unchanged. |
 | `config.js` | Version 4.1.0. |
 | `README.md` | Wording for the Add classes button; note on Appearance default and these notes. |
 | `docs/REDESIGN.md`, `docs/screenshots/` | This document and the screenshots below. |
@@ -141,7 +141,8 @@ whitespace) so the redesign can be reviewed as a real diff.
 ## Behaviour preserved
 
 - No Supabase call, RPC name, table, policy or auth flow was changed.
-  `account.js` differs only in the default theme value.
+  `account.js` differs only in the default theme value; the header toggle
+  writes the existing preference through `savePreferences`.
 - All planner logic (`app.js`) is untouched apart from icon markup and the
   colour list; the calendar's positioning constants in CSS match the JS exactly.
 - Friends, sharing, chat, reviews, classmates and study groups render from the
@@ -164,8 +165,9 @@ Local checks (served with `python -m http.server 4173`, Chromium):
 - Home: class count, Today list and to-do ordering update from the saved plan.
 - Dialogs: sign in / create account forms, Share gate for signed-out users,
   class details, filters; focus rings visible with keyboard.
-- Appearance: system default follows the OS; the toggle in My page still sets
-  `html[data-theme]`.
+- Appearance: opens light regardless of the OS setting; the header toggle
+  switches to dark, persists across reload and is reflected in My page →
+  Appearance; System default still follows the OS when chosen.
 
 Not exercised here (needs confirmed accounts, as before): live sign-in,
 signed-in friends/sharing/chat/review flows against Supabase. Those screens use
