@@ -101,6 +101,10 @@ The social lookup combines existing records into 689 campus/code identities and 
 
 Meeting snapshots cover selected Kampar sources for February, June and October 2026. This is not a complete live registration database. Unknown fields remain blank; source links and teaching weeks are retained. Confirm availability and registration eligibility with UTAR.
 
+## Tests
+
+`tests/` holds isolated database and browser-side suites that need no Supabase project: `cd tests && npm install && npm test`. They run the project's SQL on PGlite (PostgreSQL in WebAssembly) and the real pages in jsdom. See `tests/README.md` and `docs/RELIABILITY.md` for what they cover and what still needs the live project.
+
 ## Project files
 
 This branch contains the deployable website, database setup SQL and vendored browser dependencies with licence notices. No npm commands are required to serve it. The development archive additionally includes migration fragments, QR/privacy tests, seed generation and isolated PostgreSQL permission/UI tests. Significant stages are committed separately. Vercel serves the root HTML/CSS/JavaScript; Yee stays separate.
