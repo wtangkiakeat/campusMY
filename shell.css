@@ -7,3 +7,4 @@ html[data-theme=light]{color-scheme:light;--bg:#f6f5f2;--text:#242320;--surface:
 @media(min-width:801px){.planner{top:106px}}
 
 .auth-links{flex-wrap:wrap}
+.app-header .brand-logo{display:block;flex-shrink:0;padding:0;background:transparent;object-fit:contain;border-radius:0}
