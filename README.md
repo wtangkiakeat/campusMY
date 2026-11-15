@@ -4,6 +4,8 @@
 
 CampusMY brings UTAR course snapshots, personal timetables, friends, course reviews and study groups into one responsive website.
 
+The website header and browser icon use the supplied CampusMY logo in `icon.svg`, preserving its burgundy gradient, white bars and gold centre bar. The responsive header uses the same SVG on every page.
+
 ## Live deployment and automatic updates
 
 - Hosting: Vercel
