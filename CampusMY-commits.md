@@ -1,5 +1,15 @@
 # CampusMY milestones
 
+## 4.1.0 — 15 November 2026 (branch redesign/campus-identity)
+
+- `ce95372`: Expand minified stylesheets into readable lines.
+- `60f0a5f`: Introduce the CampusMY design system; restyle timetable and class explorer.
+- `274a53f`: Restyle the app shell and Home; list today's classes; follow system appearance.
+- `dadfec2`: Restyle friends, sharing, course space, reviews and chat.
+- `d7bfe2b`: Add redesign notes with desktop and mobile screenshots.
+
+Visual redesign on the supplied burgundy and gold logo colours with light and dark themes; course data, filters, Supabase integration and privacy controls unchanged. Local browser checks covered both themes at desktop and phone widths, timetable editing, filters and dialogs; signed-in Supabase flows still need the two-account acceptance test. Details and screenshots: docs/REDESIGN.md.
+
 ## 3.0.0 — 14 November 2026
 
 - `16ed0b3`: Supabase browser SDK/config, account validation, and owner-only profiles, planners and todos schema.
