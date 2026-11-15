@@ -7,6 +7,7 @@
 - `274a53f`: Restyle the app shell and Home; list today's classes; follow system appearance.
 - `dadfec2`: Restyle friends, sharing, course space, reviews and chat.
 - `d7bfe2b`: Add redesign notes with desktop and mobile screenshots.
+- `71b6d02`: Open in the bright theme by default and add a header light/dark toggle.
 
 Visual redesign on the supplied burgundy and gold logo colours with light and dark themes; course data, filters, Supabase integration and privacy controls unchanged. Local browser checks covered both themes at desktop and phone widths, timetable editing, filters and dialogs; signed-in Supabase flows still need the two-account acceptance test. Details and screenshots: docs/REDESIGN.md.
 
