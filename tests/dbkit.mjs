@@ -24,6 +24,17 @@ export const PARAMS = {
   create_group: ['p_course', 'p_term', 'p_title', 'p_purpose', 'p_mode', 'p_meeting', 'p_language', 'p_capacity'], group_action: ['p_group', 'p_action', 'p_person'], clean_plan: ['p_plan'],
 };
 
+const roomRpcs = {
+  room_list: [['text','text','text','text','boolean'], ['p_scope','p_campus','p_category','p_query','p_mine']],
+  room_detail: [['uuid'], ['p_room']],
+  room_create: [['text','text','text','text','text','int'], ['p_scope','p_campus','p_category','p_title','p_description','p_capacity']],
+  room_join: [['uuid'], ['p_room']], room_leave: [['uuid'], ['p_room']],
+  room_messages: [['uuid','bigint'], ['p_room','p_before']], room_send: [['uuid','text'], ['p_room','p_body']],
+  room_members: [['uuid'], ['p_room']], room_manage: [['uuid','text','uuid'], ['p_room','p_action','p_target']],
+  room_mute: [['uuid','boolean'], ['p_room','p_muted']], room_report: [['uuid','text'], ['p_message','p_reason']],
+};
+for (const [name, [types, params]] of Object.entries(roomRpcs)) { SIG[name] = types; PARAMS[name] = params; }
+
 export const lit = (v, type) => {
   if (v === null || v === undefined) return `null::${type}`;
   if (type === 'jsonb') return `'${JSON.stringify(v).replace(/'/g, "''")}'::jsonb`;
@@ -45,6 +56,7 @@ grant execute on function auth.uid() to anon, authenticated;
 `);
   await db.exec(readFileSync(`${REPO}/CampusMY-supabase-setup.sql`, 'utf8'));
   await db.exec(readFileSync(`${REPO}/CampusMY-social-setup.sql`, 'utf8'));
+  await db.exec(readFileSync(`${REPO}/supabase/20261116_chat_rooms.sql`, 'utf8'));
 
   // identity: null = no role switch (test code acting as the database owner), ANON = anonymous web visitor,
   // a user object = that signed-in account.

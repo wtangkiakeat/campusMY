@@ -106,7 +106,7 @@ window.HTMLDialogElement.prototype.close = function () { this.removeAttribute('o
 Object.defineProperty(window.HTMLDialogElement.prototype, 'open', { get() { return this.hasAttribute('open'); }, set(v) { v ? this.setAttribute('open', '') : this.removeAttribute('open'); }, configurable: true });
 window.qrcode = () => ({ addData() {}, make() {}, createSvgTag: () => '<svg></svg>' });
 window.supabase = { createClient: () => fakeClient };
-for (const f of ['data.js', 'core.js', 'config.js', 'account-core.js', 'app.js', 'account.js', 'shell.js', 'social-core.js', 'social.js']) window.eval(readFileSync(`${REPO}/${f}`, 'utf8'));
+for (const f of ['data.js', 'core.js', 'config.js', 'account-core.js', 'app.js', 'account.js', 'shell.js', 'social-core.js', 'chat.js', 'social.js']) window.eval(readFileSync(`${REPO}/${f}`, 'utf8'));
 await tick(50);
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -268,6 +268,52 @@ check('bob now has 1 unread', Number(unreadForBob) === 1, `unread ${unreadForBob
 msgForm.elements.body.value = '   '; submit(msgForm); await tick(200);
 const err = $('form[data-social-form="message"] .form-error')?.textContent || '';
 check('regression: whitespace-only message shows a raw database constraint error', !/check constraint/.test(err), err.slice(0, 120));
+
+// ---------- 4. Community chat: actual browser scripts + isolated room RPCs ----------
+suite('4. Local, Campus and My Chats rooms');
+await go('#chat/local'); await tick(150);
+check('chat hub has Local, Campus and My Chats without advertising', $$('.chat-hub-tabs a').length===3 && !$('.chat-hub [data-ad]') && /Your people/.test($('#chat-content').textContent));
+click('[data-chat="search"]');
+check('chat search opens and receives focus', !$('.chat-search-wrap').hidden && document.activeElement.id==='chat-search');
+click('[data-chat="settings"]');
+check('settings explain campus selection, privacy and room controls', /not verified university enrolment/.test($('#modal').textContent) && /not end-to-end encrypted/.test($('#modal').textContent));
+click('[data-action="close"]');
+click('[data-chat="create"]');
+const roomForm=$('[data-chat-form="create"]');
+roomForm.elements.title.value='Browser study circle';roomForm.elements.description.value='Isolated test room';roomForm.elements.category.value='Study';roomForm.elements.capacity.value='3';
+submit(roomForm);await tick(250);
+const roomId=window.location.hash.split('/')[2];
+check('creating a room opens its real conversation as a joined owner', !!roomId && !!$('[data-chat-form="send"]') && /Browser study circle/.test($('#chat-content').textContent));
+await kit.rpcAs(bob,'room_join',roomId);
+await kit.rpcAs(bob,'room_send',roomId,'Browser test from Bob');await tick(5200);
+check('room polling displays another member message without navigation', /Browser test from Bob/.test($('#room-messages').textContent));
+const roomSend=$('[data-chat-form="send"]');roomSend.elements.body.value='<img src=x onerror=alert(1)>';submit(roomSend);await tick(150);
+check('room messages render HTML as text, not executable markup', !$('#room-messages img') && $('#room-messages').textContent.includes('<img src=x onerror=alert(1)>'));
+roomSend.elements.body.value='   ';submit(roomSend);await tick(100);
+check('blank room messages show a helpful local validation error', /Type a message/.test(roomSend.querySelector('.form-error').textContent));
+click('[data-chat="report"]');const reportForm=$('[data-chat-form="report"]');reportForm.elements.reason.value='Isolated browser report test';submit(reportForm);await tick(150);
+check('report action records a private moderation report', modalTitle()==='Report received' && (await db.query('select count(*)::int n from public.campusmy_room_reports')).rows[0].n===1);
+click('[data-action="close"]');click('[data-chat="room-menu"]');click('[data-chat="mute"]');await tick(150);
+check('mute persists to this member record', (await kit.rpcAs(alice,'room_detail',roomId)).muted===true);
+await go('#chat/'+fBA);await tick(150);await kit.rpcAs(alice,'room_manage',roomId,'close',null);await tick(5200);
+check('room polling cannot overwrite a private friend thread after navigation', !!$('#message-list') && !$('#room-messages'));
+await kit.rpcAs(alice,'room_manage',roomId,'reopen',null);
+await go('#chat/my');await tick(200);
+check('My Chats contains joined room and existing friend conversation', !!$(`.room-card[href="#chat/room/${roomId}"]`) && !!$(`.dm-card[href="#chat/${fBA}"]`));
+await go('#chat/local');await tick(150);click('[data-chat="topic"][data-topic="Gaming"]');await tick(150);
+check('topic filtering removes rooms in another category', !$('.room-card'));
+click('[data-chat="topic"][data-topic="All"]');await tick(150);click('[data-chat="search"]');
+if($('.chat-search-wrap').hidden)click('[data-chat="search"]');
+const chatSearch=$('#chat-search');chatSearch.value='does not exist';chatSearch.dispatchEvent(new window.Event('input',{bubbles:true}));await tick(400);
+check('search filters actual rooms and preserves typed input', !$('.room-card') && $('#chat-search').value==='does not exist');
+await go('#chat/room/'+roomId);await tick(200);click('[data-chat="members"]');await tick(150);
+check('member view uses profile names without emails', /Bob Tan/.test($('#modal').textContent) && !$('#modal').textContent.includes(bob.email));
+click('[data-chat="confirm-remove"]');click('[data-chat="remove"]');await tick(150);
+check('organiser removal blocks the removed account on the server', await kit.rpcAs(bob,'room_messages',roomId,null).then(()=>false,()=>true));
+await A.signOut();await tick(100);await A.signIn(bob.email,PASSWORD);await tick(150);
+check('switching accounts clears previous room messages and denies removed member', !$('#room-message-input') && !$('#chat-content').textContent.includes('<img src=x onerror=alert(1)>') && /unavailable/.test($('#chat-content').textContent));
+await A.signOut();await tick(100);await go('#chat/campus');await tick(100);
+check('signed-out students still see the chat navigation but no private data', $$('.chat-hub-tabs a').length===3 && /Sign in/.test($('#room-list').textContent) && !$('#chat-content').textContent.includes('Browser study circle'));
 
 // ---------- summary ----------
 const failed = results.filter(r => !r.ok);

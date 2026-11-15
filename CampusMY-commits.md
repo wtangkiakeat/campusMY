@@ -26,3 +26,11 @@ Visual redesign on the supplied burgundy and gold logo colours with light and da
 The prior timetable-only version is retained at `eee0e4c`. The Yee preview was not merged into this project.
 
 UI checks covered home todos and refresh persistence, search, class group addition/removal, mobile/desktop layouts and guest account forms. Live checks confirmed the supplied Supabase project's email provider and required email confirmation, and confirmed anonymous access to the private profile table is denied. Signup email delivery, authenticated CRUD and two-account RLS behavior still require a real account acceptance test.
+
+
+## 4.2.0 — Community conversations
+
+- Protected Local / Campus rooms, membership, messages, stable paging, reports, mute and organiser controls.
+- No-ad chat discovery with Local / Campus / My Chats tabs and the existing friend chat preserved.
+- Added isolated database and browser-script regression coverage, plus desktop/mobile light/dark screenshots.
+- Additive setup migration: `supabase/20261116_chat_rooms.sql`. See `docs/CHAT-ROOMS.md` for live setup and verification limits.

@@ -19,7 +19,7 @@ Commits pushed to campusmy-website automatically trigger Vercel deployments. A s
 
 ### Update from your computer
 
-Before editing, open PowerShell in your local CampusMY-website folder and pull the latest version:
+Before editing, open PowerShell in your current CampusMY project folder and pull the latest version:
 
     git pull --ff-only
 
@@ -38,6 +38,12 @@ From this branch's root folder, serve the website with Python:
     python -m http.server 4173 --bind 127.0.0.1
 
 Open http://127.0.0.1:4173/. The index.html file is in the root of this branch; there is no dist folder here. Authentication requires HTTP/HTTPS and matching Supabase redirect URLs.
+
+## Community chat (4.2.0)
+
+Local, Campus and My Chats provide topic/search discovery, member-only rooms, organiser controls, reporting and muting, alongside existing private friend messages. No advertising or invented community content is included. Local uses a selected area; campus selection is currently self-declared, not verified enrolment.
+
+Apply `supabase/20261116_chat_rooms.sql` after the original account/social setup to enable rooms. See [chat setup, privacy and test notes](docs/CHAT-ROOMS.md). Existing friend messages work without the new room migration. See [the backend/security brief for Claude](docs/FABLE-BACKEND-BRIEF.md) for recommended follow-up work.
 
 ## Pages and features
 
