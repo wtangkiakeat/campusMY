@@ -4,12 +4,12 @@ The public Project URL and publishable key are already in root `config.js`. Supa
 
 ## Existing live project
 
-The account, social and chat-room bootstraps were already applied. Do not run them again. The 4.3 review adds, in order:
+The account, social and chat-room bootstraps were already applied. Do not run them again. The following upgrades were also applied successfully, after owner approval and a private application backup on 17 November 2026, in this order:
 
 1. `supabase/20261117_security_hardening.sql`
 2. `supabase/20261117_operational_metrics.sql`
 
-These production changes need owner approval and a backup before execution. Read [the rollout and recovery plan](docs/SECURITY.md). Staff appointment is a separate owner decision; no ordinary user can grant that role.
+These upgrades are complete for the existing live project; do not rerun them unnecessarily. Future production changes need owner approval and a backup before execution. Read [the rollout and recovery plan](docs/SECURITY.md). Staff appointment is a separate owner decision; no ordinary user can grant that role.
 
 ## A new empty project only
 
