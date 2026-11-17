@@ -79,11 +79,11 @@ Course classmate listings are opt-in, expire after 90 days and can be hidden. St
 
 Supabase Auth manages login, passwords and email confirmation. The browser-safe project settings are in config.js. See [Supabase-setup.md](Supabase-setup.md) for installation order; an existing installation must not rerun legacy bootstrap files after hardening.
 
-## Backend reliability and moderation review (4.3.0)
+## Backend reliability and moderation review (4.3.1)
 
 This branch adds atomic abuse controls, stable DM paging/unread markers, safe send retries, immediate sharing rechecks, staff report decisions, temporary community posting pauses and privacy-preserving operational counters. Security headers include a CSP in report-only mode. The catalogue, filters and existing visual identity are preserved.
 
-The changes require review and the two new SQL migrations before their backend guarantees apply to production. No staff account is appointed automatically. Production migration, merge/deployment and live two-account acceptance require the owner's participation. See [security findings, rollout and recovery](docs/SECURITY.md).
+The two SQL upgrades were applied after owner approval and a private backup on 17 November 2026. The corrected client passed 16 live scenarios with two confirmed accounts; 255 isolated checks cover the wider permission/race matrix. One operator account was appointed only after separate owner approval. Website merge/deployment remains an owner decision. See [security findings, rollout and recovery](docs/SECURITY.md).
 
 Run the isolated suites with `npm ci --prefix tests`, `npm test --prefix tests` and `npm run test:concurrency --prefix tests`. No production database URL or real credentials are used. The concurrency suite retains only synthetic local fixtures under ignored `.runtime`.
 
