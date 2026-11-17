@@ -1,6 +1,6 @@
 # Backend hardening review — 17 November 2026
 
-This is a **review branch**, not a claim that production has been migrated or that live two-account acceptance has passed. Production starts at `e5a3bf8` (4.2.0). Claude's local database milestone `f44dbf1` is preserved in this branch. The website still uses the existing Supabase project and static HTML/JavaScript architecture.
+PR #3 contains the 4.3.1 client. The production database was upgraded on 17 November 2026 after explicit owner approval and a private application backup. The production website remains on `e5a3bf8` until an approved merge. Original Claude/Codex milestone commits are retained on local milestone branches; the published review files were compared with the tested source modulo line endings. The architecture remains static HTML/JavaScript plus the existing Supabase project.
 
 ## Threat model and findings
 
@@ -10,9 +10,10 @@ Protect private plans, emails, conversations, reports, account separation and op
 | --- | --- | --- |
 | High | Concurrent count-then-insert requests exceeded friend, review and active-group limits. | Transaction advisory locks, shared rate events and real separate-connection regression tests. |
 | High | A retry key could return a prior send before current friendship/membership was checked; a key could be reused for different content. | Authorize first; serialize keys; bind them to sender, destination and body. Retry after removal, block, leave or room closure is refused. |
-| High | Reapplying an old bootstrap could overwrite hardened function bodies while a signature-only audit still passed. | All three legacy bootstraps now fail closed after hardening. Tests compare complete function definitions and privileges. Reapply the versioned migration instead. |
+| High | Reapplying an old bootstrap could overwrite hardened function bodies while a signature-only audit still passed. | All three checked-in legacy bootstraps now fail closed after hardening. Historical copies predating the guard can still be run by a database owner and must not be reused. Tests compare complete function definitions and privileges. Reapply the versioned migration instead. |
 | Medium | Timestamp-only DM pages skipped messages at equal timestamps; timestamp read markers could hide later commits. | Text-encoded bigint sequence cursor, matching index and monotonic sequence read watermark. Old clients can still call the defaulted signature. |
 | Medium | Foreground views could retain shared data after per-friend/global revocation; unrelated polling failures skipped other refreshes. | Clear the visible shared snapshot when hidden; recheck on visibility, focus, pageshow and reconnect. Independent polling failure handling and stale-response guards. |
+| Medium | Polling could supersede the initial authenticated route fetch, leaving a deep-linked chat empty after reload. | Reopen the requested accepted thread when the winning friends fetch completes; avoid redundant route renders. Reproduced live, fixed in 4.3.1, covered by two new startup/draft regressions and retested on hosted/local clients. |
 | Medium | A timed-out send could duplicate on retry, and a completed response could erase a newer draft. | Per-intent request key; no automatic retry after uncertain errors; clear only the submitted draft. Legacy fallback is restricted to `PGRST202`, scoped per RPC and periodically retried. |
 | Medium | Reports had no usable staff workflow; stale closed dialogs retained staff context. | SQL-appointed staff only, bounded report context, escaped text, hide/restore/dismiss, temporary posting decisions and reasoned audit entries. Clear staff content on close, identity change, backgrounding and role denial. |
 | Medium | Simultaneous first invitation requests could hit a unique constraint. | Per-account invitation lock and a real concurrent regression. |
@@ -31,20 +32,22 @@ A staff posting pause lasts 1–30 days or can be ended manually. It blocks comm
 
 ## Migration and rollout
 
-The production account, social and room bootstraps were already installed before this work. **Do not rerun them.** After owner approval and an owner-controlled backup, apply, in order:
+The existing production project successfully received both upgrades below after explicit owner approval. A protected application snapshot covered 20 tables / 1,024 rows plus function, policy and grant metadata; its downloaded copy is under ignored `.runtime/private-backups`. This is not a complete Auth/Storage backup. Metadata verification confirmed preserved source row counts, complete sequences, no obsolete overloads, no anonymous app RPC execution, private internal helpers, RLS on every app/backup table and no browser access to the backup schema.
+
+The account, social and room bootstraps were already installed. **Do not rerun them or ask the owner to reapply the completed upgrades unnecessarily.** For a new installation or an expressly approved repeat application, the order is:
 
 1. `supabase/20261117_security_hardening.sql`
 2. `supabase/20261117_operational_metrics.sql`
 
-Each file is transactional and reapplicable. Hardening backfills message sequences without deleting history, adds indexes, replaces functions and explicitly grants only documented RPCs. It creates an empty staff table; nobody becomes staff automatically. The optional metrics migration adds fixed-category hourly counters and an operator-only pruning helper. Both notify PostgREST to reload signatures. Apply during a quiet period because index creation/backfill can hold locks; this is not an online zero-downtime migration.
+Each file is transactional and reapplicable. Hardening backfills message sequences without deleting history, adds indexes, replaces functions and explicitly grants only documented RPCs. It creates an empty staff table; nobody becomes staff automatically. After live acceptance, the owner separately approved one confirmed operator account. Its live queue opens successfully, while the other test account has no staff tools. The optional metrics migration adds fixed-category hourly counters and an operator-only pruning helper. Both notify PostgREST to reload signatures. Apply during a quiet period because index creation/backfill can hold locks; this is not an online zero-downtime migration.
 
 For a new empty project only, install the three bootstraps in account → social → rooms order before those two migrations. The test kit follows this sequence.
 
-Appoint a moderator **only after separately approving the person and their access to reported content**. The operator can insert a confirmed account UUID into `public.campusmy_staff` in the SQL Editor; remove that row to revoke. Do not put privileged credentials, an appointment RPC or real account IDs into Git. The first live staff acceptance needs that owner decision.
+Appoint a moderator **only after separately approving the person and their access to reported content**. The operator can insert a confirmed account UUID into `public.campusmy_staff` in the SQL Editor; remove that row to revoke. Do not put privileged credentials, an appointment RPC or real account IDs into Git. The initial production appointment was made only after the owner named and approved the account. Future appointments require the same separate decision.
 
 Client compatibility permits previewing against the old server. The stronger cursor/retry guarantees require the SQL migration. On an old backend a manually repeated timed-out send can still duplicate; the client never silently retries a network error. Missing staff/metrics APIs are handled gracefully.
 
-Review PR first. Do not merge to `campusmy-website`, manually deploy, appoint production staff or apply production SQL without the owner's approval.
+Review PR first. Do not merge to `campusmy-website`, manually deploy, appoint additional staff or apply further production SQL without the owner's approval.
 
 ## Web and operational controls
 
@@ -62,7 +65,7 @@ Added indexes match DM sequence paging, course/term reviews and listings, friend
 
 The real-PostgreSQL suite creates a new password-protected loopback-only cluster under ignored `.runtime`, backs up synthetic application rows to JSON, restores all 26 application/auth-shim tables in a fresh database, repairs sequences and checks every row plus private-message access contracts. It shuts down only its own cluster and retains the test directory. This is an **application-schema/data restore drill**, not a full Supabase Auth, roles, extensions, Storage-object or PITR recovery test. No production data is exported by the tests.
 
-Before production migration, the owner should make a supported Supabase export/backup, store it outside Git and confirm how to restore it into a separate project. Include required roles/schema/data, Auth dependencies and Storage objects separately. Free-plan projects must not assume managed daily backups. Test a full project restore before making a recovery-time promise. Never paste a database password or service-role key into chat.
+For full project recovery, the owner should retain a supported Supabase export/backup, store it outside Git and confirm how to restore it into a separate project. Include required roles/schema/data, Auth dependencies and Storage objects separately. Free-plan projects must not assume managed daily backups. Test a full project restore before making a recovery-time promise. Never paste a database password or service-role key into chat.
 
 If SQL execution fails before commit, its transaction rolls back; inspect the result and issue `ROLLBACK` if the editor retains an aborted transaction. Do not use an old bootstrap as rollback after successful hardening: it is deliberately blocked. Prefer a forward fix. The old 4.2 client remains compatible with the defaulted RPC signatures, so the UI can be reverted without removing sequences, data or access checks. Do not drop new columns/tables or restore over production without a separately approved recovery plan.
 
@@ -72,9 +75,13 @@ No message, review or account retention/cascade policy is changed. Existing mess
 
 Run `npm ci --prefix tests --cache .runtime/npm-cache`, `npm test --prefix tests`, and `npm run test:concurrency --prefix tests` (the last starts an isolated PostgreSQL instance). Tests never accept a production database URL. Outputs remain under `.runtime`; they are not public artifacts.
 
-Local acceptance passed 253 checks: 113 original database, 26 rooms, 11 permission audit, 12 hardening, 5 retry/compatibility, 75 browser-script and 11 separate-connection concurrency/recovery checks. The isolated DM query plan used campusmy_messages_thread_seq; its small-fixture execution time is not a production benchmark. Real-browser guest checks are distinct from the jsdom+PGlite signed-in tests. The validation record and final PR state specify exact totals and what was actually observed.
+Local acceptance passed 255 checks: 113 original database, 26 rooms, 11 permission audit, 12 hardening, 5 retry/compatibility, 77 browser-script and 11 separate-connection concurrency/recovery checks. The isolated DM query plan used campusmy_messages_thread_seq; its small-fixture execution time is not a production benchmark. Real-browser guest checks are distinct from the jsdom+PGlite signed-in tests. The validation record and final PR state specify exact totals and what was actually observed.
 
-**Still requires owner participation:** production SQL approval/backup, selection of any production moderator, and two confirmed test accounts in separate browser sessions/origins for actual live sharing/chat/removal/reconnect acceptance. No new live two-account acceptance is claimed here. Password reset/email change and camera permission are user-controlled browser handoffs. No new enrolment boundary, Realtime subscription or end-to-end encryption is claimed.
+Live acceptance passed 16 scenarios using two owner-supplied confirmed accounts on separate origins (hosted preview and local 4.3.1). It covered read-only sharing, per-friend/global revocation of an open view, resuming publication, unread delivery, reverse replies, draft preservation, persisted-auth deep-link reloads, removal revocation, incoming-request acceptance and restoration of original sharing copies/settings. The live run found the startup issue above; both the hosted and local corrected clients passed the reload retest. Three clearly labelled private test messages remain between those test accounts. No public test reviews or rooms were created. The owner-approved staff queue opens; the other account has no staff entry. Positive hide/restore/posting-decision content tests remain isolated, as do bulk/race tests.
+
+Twelve anonymous production probes, including defaulted legacy message signatures, were denied with HTTP 401 / SQLSTATE 42501. The protected Vercel preview displayed 4.3.1 and passed real-browser guest checks; a 390px local responsive frame and explicitly synthetic staff fixture were also inspected. The anonymous HTTP header probe was redirected to Vercel sign-in, so actual application response headers still need verification on the public production deployment. Configuration is reviewed; no header-enforcement claim is based on the login response.
+
+**Remaining owner/operational decisions:** approve website merge/deployment, Auth SMTP/CAPTCHA setup, full-project recovery and retention/ownership policies. Password reset/email change and camera permission remain user-controlled browser handoffs; no email/password change was triggered for acceptance. No new enrolment boundary, Realtime subscription or end-to-end encryption is claimed.
 
 Future universities should have a server-owned university membership table with verification status, evidence/provider, expiry and revocation, separate from user-editable profile labels. Every campus-scoped RPC must derive the authorized institution from that record. Verify official domains and course-data permissions with each institution; do not guess them.
 
