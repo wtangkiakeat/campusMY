@@ -79,11 +79,11 @@ Course classmate listings are opt-in, expire after 90 days and can be hidden. St
 
 Supabase Auth manages login, passwords and email confirmation. The browser-safe project settings are in config.js. See [Supabase-setup.md](Supabase-setup.md) for installation order; an existing installation must not rerun legacy bootstrap files after hardening.
 
-## Backend reliability and moderation review (4.3.1)
+## Backend reliability and moderation (4.3.1)
 
 This branch adds atomic abuse controls, stable DM paging/unread markers, safe send retries, immediate sharing rechecks, staff report decisions, temporary community posting pauses and privacy-preserving operational counters. Security headers include a CSP in report-only mode. The catalogue, filters and existing visual identity are preserved.
 
-The two SQL upgrades were applied after owner approval and a private backup on 17 November 2026. The corrected client passed 16 live scenarios with two confirmed accounts; 255 isolated checks cover the wider permission/race matrix. One operator account was appointed only after separate owner approval. Website merge/deployment remains an owner decision. See [security findings, rollout and recovery](docs/SECURITY.md).
+The two SQL upgrades were applied after owner approval and a private backup on 17 November 2026. The corrected client passed 16 live scenarios with two confirmed accounts; 255 isolated checks cover the wider permission/race matrix. One operator account was appointed only after separate owner approval. PR #3 was merged and version 4.3.1 published after owner approval. The public site and security response headers were verified. See [security findings, rollout and recovery](docs/SECURITY.md).
 
 Run the isolated suites with `npm ci --prefix tests`, `npm test --prefix tests` and `npm run test:concurrency --prefix tests`. No production database URL or real credentials are used. The concurrency suite retains only synthetic local fixtures under ignored `.runtime`.
 
@@ -93,7 +93,7 @@ Social tables grant no direct anonymous/authenticated access. API functions chec
 
 ### Manual moderation
 
-Reports are stored in `campusmy_review_reports` for the site operator to review in Supabase. Reporting does not automatically hide content. Set `campusmy_reviews.hidden` to true to hide abusive content without deleting it, or false to restore it. Students cannot change moderation flags. The 4.3 review adds a staff-only report dashboard with hide/restore, posting pauses and a decision audit trail after its migrations are approved. No external automatic moderation service is used. An operator can reverse a block by removing its row from `campusmy_blocks`; that does not restore the friendship automatically.
+Reports are stored in `campusmy_review_reports` for the site operator to review in Supabase. Reporting does not automatically hide content. Set `campusmy_reviews.hidden` to true to hide abusive content without deleting it, or false to restore it. Students cannot change moderation flags. Version 4.3 includes a staff-only report dashboard with hide/restore, posting pauses and a decision audit trail. Its production migrations and initial operator appointment were separately approved and completed. No external automatic moderation service is used. An operator can reverse a block by removing its row from `campusmy_blocks`; that does not restore the friendship automatically.
 
 In Supabase → Authentication → URL Configuration:
 
