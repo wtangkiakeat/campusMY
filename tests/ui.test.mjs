@@ -21,7 +21,7 @@ const accounts = new Map([[alice.email, alice], [bob.email, bob], [nometa.email,
 await kit.createProfile(bob, 'Bob Tan');
 
 // ---------- Supabase client stand-in ----------
-let currentUser = null;
+let currentUser = null, afterRpc = null;
 const listeners = [];
 const sessionOf = u => u ? { user: { id: u.id, email: u.email, email_confirmed_at: u.confirmed ? '2026-01-01T00:00:00Z' : null, user_metadata: u.metadata || {} }, access_token: 'test-token' } : null;
 function pgError(e) { return { message: e.message, code: e.code || null, details: e.detail || null, hint: e.hint || null }; }
@@ -68,7 +68,7 @@ function rpc(name, args = {}) {
         const { rows } = await kit.as(currentUser ?? kit.ANON, () => db.query(`select public.campusmy_save_planner($1::jsonb, $2::bigint) as v`, [JSON.stringify(args.p_payload), args.p_expected_version]));
         return { data: Number(rows[0].v), error: null };
       }
-      return { data: await kit.rpcNamedAs(currentUser ?? kit.ANON, name, args), error: null };
+      const data=await kit.rpcNamedAs(currentUser ?? kit.ANON, name, args);if(afterRpc)await afterRpc(name,args);return {data,error:null};
     } catch (e) { return { data: null, error: pgError(e) }; }
   })();
   promise.setHeader = () => promise;
@@ -106,7 +106,8 @@ window.HTMLDialogElement.prototype.close = function () { this.removeAttribute('o
 Object.defineProperty(window.HTMLDialogElement.prototype, 'open', { get() { return this.hasAttribute('open'); }, set(v) { v ? this.setAttribute('open', '') : this.removeAttribute('open'); }, configurable: true });
 window.qrcode = () => ({ addData() {}, make() {}, createSvgTag: () => '<svg></svg>' });
 window.supabase = { createClient: () => fakeClient };
-for (const f of ['data.js', 'core.js', 'config.js', 'account-core.js', 'app.js', 'account.js', 'shell.js', 'social-core.js', 'chat.js', 'social.js']) window.eval(readFileSync(`${REPO}/${f}`, 'utf8'));
+const browserScripts=['data.js', 'core.js', 'config.js', 'account-core.js', 'app.js', 'account.js', 'diagnostics.js', 'reliability.js', 'shell.js', 'social-core.js', 'chat.js', 'social.js', 'moderation.js'];
+for (const f of browserScripts) window.eval(readFileSync(`${REPO}/${f}`, 'utf8'));
 await tick(50);
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -314,6 +315,71 @@ await A.signOut();await tick(100);await A.signIn(bob.email,PASSWORD);await tick(
 check('switching accounts clears previous room messages and denies removed member', !$('#room-message-input') && !$('#chat-content').textContent.includes('<img src=x onerror=alert(1)>') && /unavailable/.test($('#chat-content').textContent));
 await A.signOut();await tick(100);await go('#chat/campus');await tick(100);
 check('signed-out students still see the chat navigation but no private data', $$('.chat-hub-tabs a').length===3 && /Sign in/.test($('#room-list').textContent) && !$('#chat-content').textContent.includes('Browser study circle'));
+
+// ---------- 5. Hardening: foreground refresh, draft preservation and staff controls ----------
+suite('5. Foreground refresh and staff moderation');
+await A.signIn(alice.email,PASSWORD);await tick(120);await go('#timetable');await tick(100);
+await kit.rpcAs(bob,'publish_plan',{name:'Bob foreground week',campus:'Kampar',term:'October 2026',entries:[]});
+click('[data-social="view-friend"]');await tick(150);
+let hidden=false;Object.defineProperty(document,'hidden',{get:()=>hidden,configurable:true});
+hidden=true;document.dispatchEvent(new window.Event('visibilitychange'));
+check('backgrounding a shared timetable removes its cached content', !$('#shared-view').textContent.includes('Bob foreground week') && /paused/i.test($('#shared-view').textContent));
+await kit.rpcAs(bob,'friend_action',fBA,'pause');hidden=false;document.dispatchEvent(new window.Event('visibilitychange'));await tick(180);
+check('returning to the foreground immediately applies per-friend revocation', /sharing is paused/i.test($('#shared-view').textContent));
+await kit.rpcAs(bob,'friend_action',fBA,'resume');window.dispatchEvent(new window.Event('focus'));await tick(180);
+check('focus rechecks permission and restores a resumed timetable', /Bob foreground week/.test($('#shared-view').textContent));
+await kit.rpcAs(bob,'pause_sharing');window.dispatchEvent(new window.Event('online'));await tick(180);
+check('reconnect immediately applies global sharing stop', /sharing is paused/i.test($('#shared-view').textContent));
+click('[data-action="close"]');await go('#chat/'+fBA);await tick(180);
+$('#message-text').value='Keep this unsent draft';window.dispatchEvent(new window.Event('focus'));await tick(180);
+check('refreshing messages and friend unread state preserves the current draft', $('#message-text').value==='Keep this unsent draft');
+let releaseSend;
+afterRpc=name=>name==='cm_send_message'?new Promise(resolve=>{releaseSend=resolve;}):undefined;
+const pendingForm=$('[data-social-form="message"]');pendingForm.elements.body.value='Send while editing';submit(pendingForm);
+for(let i=0;i<20&&!releaseSend;i++)await tick(10);
+pendingForm.elements.body.value='My next draft';afterRpc=null;releaseSend();await tick(160);
+check('a completed send does not erase text typed while its response was pending', $('#message-text').value==='My next draft');
+await go('#account');await tick(120);
+check('ordinary accounts have no staff operations entry', !$('#moderation-entry'));
+click('[data-shell="restrictions"]');await tick(150);check('students can inspect their own current posting status', /No active community posting pause/.test($('#modal').textContent));click('[data-action="close"]');
+await db.query('insert into public.campusmy_staff(user_id) values($1)',[alice.id]);
+const courseKey=(await db.query('select course_key,term from public.campusmy_social_teachers limit 1')).rows[0];
+const flagged=await kit.rpcAs(bob,'save_review',courseKey.course_key,courseKey.term,'',2,2,'Moderate',[],'<img src=x onerror=alert(1)> isolated review','',true);
+await kit.rpcAs(alice,'report_review',flagged,'<img src=x onerror=alert(2)> isolated reason');
+await go('#home');await go('#account');await tick(150);
+check('SQL-appointed staff have a report queue entry in My page', !!$('#moderation-entry [data-moderation="open"]'));
+click('[data-moderation="open"]');await tick(180);
+check('staff queue escapes reported content and reasons', !$('#moderation-panel img') && $('#moderation-queue').textContent.includes('<img src=x onerror=alert(1)>'));
+const decision=$(`[data-moderation-form][data-id="${flagged}"]`);decision.elements.reason.value='Isolated UI hide decision';
+decision.dispatchEvent(new window.SubmitEvent('submit',{bubbles:true,cancelable:true,submitter:decision.querySelector('[value="hide"]')}));await tick(180);
+check('staff hide records a decision and removes the review from other students', !(await kit.rpcAs(nometa,'course_social',courseKey.course_key,courseKey.term)).reviews.some(r=>r.id===flagged) && /Isolated UI hide decision/.test($('#moderation-log').textContent));
+$('#moderation-filter').value='actioned';$('#moderation-filter').dispatchEvent(new window.Event('change',{bubbles:true}));await tick(180);
+const restore=$(`[data-moderation-form][data-id="${flagged}"]`);restore.elements.reason.value='Isolated UI restore decision';restore.dispatchEvent(new window.SubmitEvent('submit',{bubbles:true,cancelable:true,submitter:restore.querySelector('[value="restore"]')}));await tick(180);
+check('staff restore makes content visible and keeps both decisions in the audit trail', (await kit.rpcAs(nometa,'course_social',courseKey.course_key,courseKey.term)).reviews.some(r=>r.id===flagged) && /Isolated UI restore decision/.test($('#moderation-log').textContent));
+let posting=$(`[data-moderation-form][data-id="${flagged}"]`);posting.elements.days.value='1';posting.elements.reason.value='Isolated UI posting pause';posting.dispatchEvent(new window.SubmitEvent('submit',{bubbles:true,cancelable:true,submitter:posting.querySelector('[value="posting"]')}));await tick(160);
+check('staff can apply a temporary community posting decision through the UI', (await kit.rpcAs(bob,'posting_status'))?.reason==='Isolated UI posting pause');
+posting=$(`[data-moderation-form][data-id="${flagged}"]`);posting.elements.days.value='0';posting.elements.reason.value='Isolated UI posting resumed';posting.dispatchEvent(new window.SubmitEvent('submit',{bubbles:true,cancelable:true,submitter:posting.querySelector('[value="posting"]')}));await tick(160);
+check('staff can resume posting and both actions are audited', await kit.rpcAs(bob,'posting_status')===null && /Isolated UI posting resumed/.test($('#moderation-log').textContent));
+await db.query('delete from public.campusmy_staff where user_id=$1',[alice.id]);
+click('[data-moderation="refresh"]');await tick(180);
+check('staff revocation clears privileged content and removes the entry', !$('#moderation-panel') && !$('#moderation-entry'));
+await A.signOut();await tick(100);
+check('sign-out leaves no staff queue or prior conversation content', !$('#moderation-panel') && !$('#message-list'));
+
+// ---------- 6. Deep-link startup after persisted authentication ----------
+suite('6. A polling refresh wins the initial authenticated deep-link request');
+const previousUser=currentUser,listenerCount=listeners.length;currentUser=alice;
+const freshDom=new JSDOM(html,{url:'http://127.0.0.1:4173/#chat/'+fBA,runScripts:'outside-only',pretendToBeVisual:true});
+const fw=freshDom.window;fw.matchMedia=()=>({matches:false,addEventListener(){},removeEventListener(){}});fw.HTMLElement.prototype.scrollIntoView=()=>{};fw.scrollTo=()=>{};Object.defineProperty(fw,'crypto',{value:globalThis.crypto});fw.HTMLDialogElement.prototype.showModal=function(){this.setAttribute('open','');};fw.HTMLDialogElement.prototype.close=function(){this.removeAttribute('open');this.dispatchEvent(new fw.Event('close'));};fw.qrcode=()=>({addData(){},make(){},createSvgTag:()=>'<svg></svg>'});fw.supabase={createClient:()=>fakeClient};
+let friendLoads=0;afterRpc=name=>name==='cm_friends'?new Promise(resolve=>setTimeout(resolve,++friendLoads<=2?60:150)):undefined;
+try{
+ for(const f of browserScripts)fw.eval(readFileSync(`${REPO}/${f}`,'utf8'));
+ for(let i=0;i<50&&friendLoads<2;i++)await tick(10);
+ fw.dispatchEvent(new fw.Event('focus'));await tick(350);
+ check('direct conversation startup recovers when polling supersedes the initial route fetch',!!fw.document.querySelector('#message-text')&&fw.document.querySelector('#message-list').textContent.includes('Hey Alice, library at 3?'));
+ const draft=fw.document.querySelector('#message-text');if(draft)draft.value='Deep-link draft';fw.dispatchEvent(new fw.Event('focus'));await tick(220);
+ check('later friend refreshes preserve the active deep-linked conversation draft',fw.document.querySelector('#message-text')?.value==='Deep-link draft');
+}finally{afterRpc=null;fw.close();listeners.splice(listenerCount);currentUser=previousUser;}
 
 // ---------- summary ----------
 const failed = results.filter(r => !r.ok);

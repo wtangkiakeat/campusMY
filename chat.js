@@ -11,7 +11,7 @@
   function fresh() { return {owner:A.state.user?.id || '',epoch:0,tab:'local',area:campus(),topic:'All',query:'',searchOpen:false,rooms:[],friends:[],room:null,messages:[],older:false,problem:'',loading:false,listVersion:0,viewVersion:0,mineUnread:0}; }
   const rpc = (name, args = {}) => A.rpc('cm_room_' + name, args);
   function when(v) { if (!v) return ''; const mins = Math.max(0, Math.floor((Date.now()-new Date(v).getTime())/60000)); return mins < 1 ? 'Just now' : mins < 60 ? `${mins}m ago` : mins < 1440 ? `${Math.floor(mins/60)}h ago` : new Date(v).toLocaleDateString('en-MY',{day:'numeric',month:'short'}); }
-  function issue(e) { return /PGRST202|does not exist|schema cache|unknown rpc|Supabase tables are not ready/i.test(e?.message || '') ? 'Community rooms are not connected yet. Friend messages are still available in My Chats.' : e?.message || 'Could not connect. Please try again.'; }
+  function issue(e) { window.CampusDiagnostics?.record('rooms',e); return /PGRST202|does not exist|schema cache|unknown rpc|Supabase tables are not ready/i.test(e?.message || '') ? 'Community rooms are not connected yet. Friend messages are still available in My Chats.' : e?.message || 'Could not connect. Please try again.'; }
   function gate() { if (signed()) return true; window.CampusShell.go('account'); if (!A.state.user) document.querySelector('[data-shell="login"]')?.click(); return false; }
   function modal(title, body) { P.show(P.header(title) + `<div class="modal-body room-modal">${body}<p class="form-error" role="alert"></p></div>`,'social-dialog'); }
   const field = (label, html) => `<label class="form-field">${label}${html}</label>`;
@@ -133,16 +133,19 @@
     const submit=f.querySelector('[type="submit"]'),out=f.querySelector('.form-error'),data=Object.fromEntries(new FormData(f)),epoch=state.epoch,id=state.room?.id;submit.disabled=true;out.textContent='';
     try{
       if(f.dataset.chatForm==='create'){const created=await rpc('create',{p_scope:data.scope,p_campus:data.campus,p_category:data.category,p_title:data.title,p_description:data.description,p_capacity:Number(data.capacity)});if(epoch===state.epoch){$('#modal').close();location.hash='chat/room/'+created;}}
-      else if(f.dataset.chatForm==='send'){const body=String(data.body||'').trim();if(!body)throw Error('Type a message before sending.');await rpc('send',{p_room:id,p_body:body});if(epoch===state.epoch&&id===state.room?.id){f.reset();await loadMessages();$('#room-message-input')?.focus();}}
+      else if(f.dataset.chatForm==='send'){const body=String(data.body||'').trim();if(!body)throw Error('Type a message before sending.');await window.CampusReliability.send('cm_room_send',{p_room:id,p_body:body});if(epoch===state.epoch&&id===state.room?.id){if(String(f.elements.body.value).trim()===body)f.reset();await loadMessages();$('#room-message-input')?.focus();}}
       else if(f.dataset.chatForm==='report'){await rpc('report',{p_message:data.message,p_reason:data.reason});if(epoch===state.epoch)modal('Report received','<p>The site operator can review this report. Reporting does not automatically remove the message.</p>');}
     }catch(err){if(epoch===state.epoch&&out.isConnected)out.textContent=issue(err);}finally{if(submit.isConnected)submit.disabled=false;}
   });
-  setInterval(async()=>{
+  async function pollRooms(){
     if(document.hidden||!signed()||document.body.dataset.page!=='chat'||window.CampusSocialCore.uuid(location.hash.split('/')[1])||pollBusy)return;
     pollBusy=true;const epoch=state.epoch,id=state.room?.id,version=state.viewVersion;
     try{if(id){const room=await rpc('detail',{p_room:id});if(epoch!==state.epoch||version!==state.viewVersion)return;const changed=room.joined!==state.room.joined||room.closed!==state.room.closed;state.room=room;if(changed){state.messages=[];paintThread();}if(room.joined)await loadMessages(false,changed);const n=$('#room-member-count');if(n)n.textContent=`${room.count}/${room.capacity} members${room.closed?' · Room closed':''}`;}else if(!window.CampusSocialCore.uuid(location.hash.split('/')[1]))await loadRooms(true);}
     catch(e){if(epoch===state.epoch&&version===state.viewVersion&&id===state.room?.id){if(e.code==='42501'||/unavailable for your account|Join this room/i.test(e.message||'')){state.messages=[];$('#chat-content').innerHTML=`<a class="room-back" href="#chat/my">${icon('back')} Back to chats</a>${empty('Room access ended',issue(e))}`;state.room=null;}else {const n=$('#room-live-status');if(n)n.textContent='Connection interrupted. Retrying…';}}}finally{pollBusy=false;}
-  },5000);
+  }
+  setInterval(()=>void pollRooms(),5000);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)void pollRooms();});
+  for(const event of ['focus','pageshow','online'])window.addEventListener(event,()=>void pollRooms());
   window.addEventListener('campusmy:account-changed',()=>{if((A.state.user?.id||'')!==state.owner){reset();if(location.hash.startsWith('#chat')&&!window.CampusSocialCore.uuid(location.hash.split('/')[1]))render();}});
   window.CampusChat={render,deactivate(){state.viewVersion++;state.listVersion++;state.room=null;state.messages=[];},updateFriends(rows){state.friends=rows.filter(f=>f.status==='accepted');if(state.tab==='my'&&!state.room)paintList();},unread(){return state.mineUnread;}};
 })();

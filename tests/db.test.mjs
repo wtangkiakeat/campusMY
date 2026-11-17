@@ -237,7 +237,7 @@ await as(dave, async () => {
 });
 await as(alice, async () => {
   const e = await expectError('whitespace-only message is rejected by the database', () => rpc('send_message', fAB, '   '));
-  check('whitespace-only message error is a raw check-constraint message (UI shows it verbatim)', /check constraint/.test(e?.message || ''), e?.message);
+  check('whitespace-only message is refused with a readable message, not a raw constraint error', /Write a message between 1 and 2000/.test(e?.message || ''), e?.message);
   for (let i = 0; i < 27; i++) await rpc('send_message', fAB, 'msg ' + i); // 3 already sent this minute
   await expectError('31st message within a minute is rate limited', () => rpc('send_message', fAB, 'one too many'), /wait before sending/);
 });

@@ -1,21 +1,21 @@
-# CampusMY tests
+# CampusMY isolated checks
 
-Isolated tests that need no Supabase project, network or Docker. They run the project's own SQL
-(`CampusMY-supabase-setup.sql` and `CampusMY-social-setup.sql`) on PGlite — PostgreSQL 17 compiled
-to WebAssembly — behind a small `auth` schema shim, and act as separate test accounts the way
-PostgREST does (`set role authenticated` plus a JWT subject claim).
+From the repository root:
 
-    cd tests
-    npm install
-    npm test
+    npm ci --prefix tests
+    npm test --prefix tests
+    npm run test:concurrency --prefix tests
 
-- `db.test.mjs` — row-level security and optimistic plan saves, friend requests/acceptance/decline/
-  blocking/invitations, reciprocal sharing and revocation, chat and unread counts, review ownership
-  and moderation, study-group requests/approval/capacity, classmate listings.
-- `ui.test.mjs` — the real `index.html` and scripts in jsdom with a Supabase client stand-in that
-  routes `auth`, `from()` and `rpc()` into the same test database: sign-in/sign-out and plan
-  separation across guest and accounts, clashes, teaching weeks, group selection, the friends panel,
-  read-only sharing and revocation, chat unread badges.
+Installation downloads development packages. Test execution uses only synthetic identities and local databases, never the live Supabase project. No production URL/password is accepted by the test kit.
 
-Nothing here touches the live project. Live sign-in emails, PKCE redirects and SMTP still need the
-two-account acceptance test described in the main README.
+- `db.test.mjs`: original owner RLS, private saves, social and group behavior.
+- `rooms.test.mjs`: membership, capacity, room privacy and original room behavior.
+- `audit.test.mjs`: exact RPC/table/sequence grants, empty search paths, RLS, ID substitution and legacy migration downgrade prevention.
+- `hardening.test.mjs`: retry authorization/content binding, equal-time cursors and unread watermarks, staff report decisions, posting pauses, aggregate counters and repeatable migrations.
+- `reliability.test.mjs`: uncertain send retries, missing-signature-only fallback, account isolation and bigint cursor precision.
+- `ui.test.mjs`: actual index/scripts in jsdom with Auth/RPCs routed into isolated PGlite; includes sharing focus/reconnect, draft edits during a delayed response and staff hide/restore/posting/revocation flows.
+- `concurrency.test.mjs`: a real embedded PostgreSQL instance and independent connections for simultaneous operations, plus a synthetic schema/data backup restored into a separate database. It binds loopback, uses a new random password and unique ignored `.runtime/pg-audit-*` directory, shuts down its own cluster and retains the fixture backup. No recursive cleanup is run. Windows uses `pg_ctl` for graceful shutdown.
+
+The default suite uses PGlite (PostgreSQL in WebAssembly) and jsdom. These are simulated application/auth browser flows, not real email or live Supabase acceptance. The real PostgreSQL concurrency suite is separate because PGlite serializes a single connection. The fixture restore is not a full Supabase Auth/Storage/PITR disaster-recovery test.
+
+GitHub Actions runs both commands with read-only repository permissions and no production secrets. Read [security scope, rollout, retention and outstanding live checks](../docs/SECURITY.md).

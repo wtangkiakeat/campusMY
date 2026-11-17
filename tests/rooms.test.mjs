@@ -11,7 +11,7 @@ const alice=await kit.newUser('roomalice@test.local'),bob=await kit.newUser('roo
 for(const u of [alice,bob,eve,unconfirmed])await kit.createProfile(u);
 await kit.as(eve,()=>db.query("update public.campusmy_profiles set campus='Sungai Long' where user_id=$1",[eve.id]));
 let room,msg,local;
-await test('migration is safe to reapply',()=>db.exec(readFileSync(`${REPO}/supabase/20261116_chat_rooms.sql`,'utf8')));
+await test('legacy room bootstrap cannot overwrite installed hardening',async()=>{await assert.rejects(()=>db.exec(readFileSync(`${REPO}/supabase/20261116_chat_rooms.sql`,'utf8')),/already installed/);await db.exec('rollback');});
 await test('anonymous cannot discover rooms',()=>denied(()=>rpc(kit.ANON,'list','local','Kampar','','',false)));
 await test('unconfirmed accounts cannot create rooms',()=>denied(()=>rpc(unconfirmed,'create','local','Kampar','Study','Blocked test','',5)));
 await test('all four new tables have RLS and deny direct reads to students',async()=>{for(const table of ['rooms','room_members','room_messages','room_reports']){assert.equal((await db.query('select relrowsecurity from pg_class where oid=$1::regclass',['public.campusmy_'+table])).rows[0].relrowsecurity,true);await denied(()=>kit.as(alice,()=>db.query('select * from public.campusmy_'+table)));}});

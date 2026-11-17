@@ -10,7 +10,7 @@ const write=(name,value)=>localStorage.setItem(key(name),JSON.stringify(value));
 const emit=()=>window.dispatchEvent(new Event('campusmy:account-changed'));
 const redirect=()=>location.origin+location.pathname;
 const schemaMessage='Your Supabase tables are not ready. Run CampusMY-supabase-setup.sql in the project’s SQL Editor.';
-function dbError(error){if(!error)return;if(['PGRST205','42P01','PGRST202'].includes(error.code))throw Error(schemaMessage);throw Error(error.message||'Supabase could not complete this request.');}
+function dbError(error){if(!error)return;const e=Error(['PGRST205','42P01'].includes(error.code)?schemaMessage:error.message||'Supabase could not complete this request.');e.code=error.code||'';throw e;}
 function stillOwner(user){if(state.user?.id!==user.id)throw Error('Your account changed. Please try again.');}
 function requireUser(){if(!client)throw Error('Supabase is not configured.');if(!state.user)throw Error('Sign in first.');return state.user;}
 function preferences(){const p={theme:'light',notifications:true,defaultBoard:'General',keywords:[],...(state.profile?.preferences||read(key('preferences'),{}))};return {...p,theme:['dark','light','system'].includes(p.theme)?p.theme:'light',keywords:Array.isArray(p.keywords)?p.keywords.filter(x=>typeof x==='string').slice(0,20):[]};}
