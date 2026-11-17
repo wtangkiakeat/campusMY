@@ -27,6 +27,8 @@ async function refreshFriends(){
  finally{if(version===epoch&&request===refreshSequence){
   if(old!==JSON.stringify(friends)||oldProblem!==problem)renderFriends();
   if(chatId&&!friends.items.some(f=>f.id===chatId&&f.status==='accepted')){messages=[];chatId='';renderChat();}
+  // A later auth/friends request can win after route() rendered an empty initial thread.
+  const requested=chatRoute();if(document.body.dataset.page==='chat'&&!chatId&&S.uuid(requested)&&friends.items.some(f=>f.id===requested&&f.status==='accepted'))renderChat();
   window.CampusChat?.updateFriends(friends.items);updateBadges();
   document.querySelectorAll('.chat-person[data-id]').forEach(b=>{const f=friends.items.find(x=>x.id===b.dataset.id);b.querySelector('.unread-pill')?.remove();if(f?.unread){const badge=document.createElement('span');badge.className='unread-pill';badge.textContent=f.unread;b.append(badge);}});
  }}
@@ -137,7 +139,7 @@ case 'message':{const id=chatId,body=String(data.body||'').trim();if(!body)throw
 }}catch(err){if(version===epoch){if(error.isConnected)error.textContent=setupError(err);else showError(err);}}finally{if(button.isConnected)button.disabled=false;}});
 $('#modal').addEventListener('close',()=>{if($('#modal').open)return;stopCamera();$('#shared-view')?.remove();sharedTarget='';sharedVersion++;courseVersion++;});
 window.addEventListener('campusmy:plans-changed',()=>{clearTimeout(syncTimer);const b=binding(),c=P.exportCurrent();if(!verified()||!b||c.campus!==b.campus||c.term!==b.term||c.plan.id!==b.id||!friends.sharing?.enabled)return;const account=epoch;syncTimer=setTimeout(()=>{if(account===epoch&&binding())publish(b.manual).catch(e=>P.toast('Shared copy could not update: '+setupError(e)));},900);});
-function route(){if(location.hash.startsWith('#chat')){void refreshFriends().then(renderChat);}const token=location.hash.match(/^#invite\/([0-9a-f-]+)$/i)?.[1];if(token&&token!==seenInvite&&A.state.ready){seenInvite=token;openInvitation(token).catch(showError);}}
+function route(){if(location.hash.startsWith('#chat')){const requested=chatRoute();void refreshFriends().then(()=>{if(chatRoute()!==requested)return;if(!S.uuid(requested)||chatId!==requested||!$('#message-list'))renderChat();});}const token=location.hash.match(/^#invite\/([0-9a-f-]+)$/i)?.[1];if(token&&token!==seenInvite&&A.state.ready){seenInvite=token;openInvitation(token).catch(showError);}}
 window.addEventListener('hashchange',route);
 window.addEventListener('campusmy:account-changed',()=>{const id=me();if(id!==owner){owner=id;epoch++;courseVersion++;sharedVersion++;sharedTarget='';friends={items:[],sharing:null};context=null;courseData=null;messages=[];chatId='';seenInvite='';clearTimeout(syncTimer);stopCamera();renderFriends();renderChat();void recentReviews();}if(verified()){void refreshFriends();void recentReviews();}route();});
 async function pollSocial(immediate=false){
