@@ -106,7 +106,8 @@ window.HTMLDialogElement.prototype.close = function () { this.removeAttribute('o
 Object.defineProperty(window.HTMLDialogElement.prototype, 'open', { get() { return this.hasAttribute('open'); }, set(v) { v ? this.setAttribute('open', '') : this.removeAttribute('open'); }, configurable: true });
 window.qrcode = () => ({ addData() {}, make() {}, createSvgTag: () => '<svg></svg>' });
 window.supabase = { createClient: () => fakeClient };
-for (const f of ['data.js', 'core.js', 'config.js', 'account-core.js', 'app.js', 'account.js', 'diagnostics.js', 'reliability.js', 'shell.js', 'social-core.js', 'chat.js', 'social.js', 'moderation.js']) window.eval(readFileSync(`${REPO}/${f}`, 'utf8'));
+const browserScripts=['data.js', 'core.js', 'config.js', 'account-core.js', 'app.js', 'account.js', 'diagnostics.js', 'reliability.js', 'shell.js', 'social-core.js', 'chat.js', 'social.js', 'moderation.js'];
+for (const f of browserScripts) window.eval(readFileSync(`${REPO}/${f}`, 'utf8'));
 await tick(50);
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -364,6 +365,21 @@ click('[data-moderation="refresh"]');await tick(180);
 check('staff revocation clears privileged content and removes the entry', !$('#moderation-panel') && !$('#moderation-entry'));
 await A.signOut();await tick(100);
 check('sign-out leaves no staff queue or prior conversation content', !$('#moderation-panel') && !$('#message-list'));
+
+// ---------- 6. Deep-link startup after persisted authentication ----------
+suite('6. A polling refresh wins the initial authenticated deep-link request');
+const previousUser=currentUser,listenerCount=listeners.length;currentUser=alice;
+const freshDom=new JSDOM(html,{url:'http://127.0.0.1:4173/#chat/'+fBA,runScripts:'outside-only',pretendToBeVisual:true});
+const fw=freshDom.window;fw.matchMedia=()=>({matches:false,addEventListener(){},removeEventListener(){}});fw.HTMLElement.prototype.scrollIntoView=()=>{};fw.scrollTo=()=>{};Object.defineProperty(fw,'crypto',{value:globalThis.crypto});fw.HTMLDialogElement.prototype.showModal=function(){this.setAttribute('open','');};fw.HTMLDialogElement.prototype.close=function(){this.removeAttribute('open');this.dispatchEvent(new fw.Event('close'));};fw.qrcode=()=>({addData(){},make(){},createSvgTag:()=>'<svg></svg>'});fw.supabase={createClient:()=>fakeClient};
+let friendLoads=0;afterRpc=name=>name==='cm_friends'?new Promise(resolve=>setTimeout(resolve,++friendLoads<=2?60:150)):undefined;
+try{
+ for(const f of browserScripts)fw.eval(readFileSync(`${REPO}/${f}`,'utf8'));
+ for(let i=0;i<50&&friendLoads<2;i++)await tick(10);
+ fw.dispatchEvent(new fw.Event('focus'));await tick(350);
+ check('direct conversation startup recovers when polling supersedes the initial route fetch',!!fw.document.querySelector('#message-text')&&fw.document.querySelector('#message-list').textContent.includes('Hey Alice, library at 3?'));
+ const draft=fw.document.querySelector('#message-text');if(draft)draft.value='Deep-link draft';fw.dispatchEvent(new fw.Event('focus'));await tick(220);
+ check('later friend refreshes preserve the active deep-linked conversation draft',fw.document.querySelector('#message-text')?.value==='Deep-link draft');
+}finally{afterRpc=null;fw.close();listeners.splice(listenerCount);currentUser=previousUser;}
 
 // ---------- summary ----------
 const failed = results.filter(r => !r.ok);
