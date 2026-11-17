@@ -1,6 +1,13 @@
 -- CampusMY community rooms. Apply AFTER the existing account and social setup.
 -- Additive migration: no existing rows, policies, functions or privileges are weakened.
 begin;
+-- Bootstrap files must not overwrite newer hardened function bodies.
+do $$ begin
+ if to_regclass('public.campusmy_rate_events') is not null then
+  raise exception 'Security hardening is already installed. Do not reapply legacy setup files; use the versioned hardening migration.' using errcode='55000';
+ end if;
+end $$;
+
 create table if not exists public.campusmy_rooms (
  id uuid primary key default gen_random_uuid(), owner uuid not null references auth.users(id) on delete cascade,
  university text not null default 'utar' check(university='utar'),
@@ -179,4 +186,13 @@ end $$;
 grant execute on function public.cm_room_list(text,text,text,text,boolean),public.cm_room_detail(uuid),public.cm_room_create(text,text,text,text,text,integer),
  public.cm_room_join(uuid),public.cm_room_leave(uuid),public.cm_room_messages(uuid,bigint),public.cm_room_send(uuid,text),public.cm_room_members(uuid),
  public.cm_room_manage(uuid,text,uuid),public.cm_room_mute(uuid,boolean),public.cm_room_report(uuid,text) to authenticated;
+
+-- If the 20261117 hardening migration has already replaced cm_room_send with a three-argument version,
+-- re-applying this file must not leave an ambiguous two-argument overload behind.
+do $$ begin
+ if exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='cm_room_send' and p.pronargs=3) then
+  drop function if exists public.cm_room_send(uuid,text);
+  grant execute on function public.cm_room_send(uuid,text,uuid) to authenticated;
+ end if;
+end $$;
 commit;
