@@ -9,7 +9,7 @@ export const REPO = fileURLToPath(new URL('..', import.meta.url)).replace(/[\/]+
 export const SIG = {
   find_person: ['text'], my_invite: ['boolean'], resolve_invite: ['uuid'], request_friend: ['uuid'], friend_action: ['uuid', 'text'],
   block_person: ['uuid', 'boolean'], publish_plan: ['jsonb'], pause_sharing: [], get_friend_plan: ['uuid'], friends: [],
-  messages: ['uuid', 'timestamptz'], send_message: ['uuid', 'text'], course_social: ['text', 'text'],
+  messages: ['uuid', 'timestamptz', 'bigint'], send_message: ['uuid', 'text', 'uuid'], course_social: ['text', 'text'],
   save_review: ['text', 'text', 'text', 'int', 'int', 'text', 'text[]', 'text', 'text', 'boolean'], delete_review: ['uuid'],
   report_review: ['uuid', 'text'], recent_reviews: [], my_reviews: [], classmate: ['text', 'text', 'text', 'text', 'text', 'boolean'],
   create_group: ['text', 'text', 'text', 'text', 'text', 'text', 'text', 'int'], group_action: ['uuid', 'text', 'uuid'], clean_plan: ['jsonb'],
@@ -18,7 +18,7 @@ export const SIG = {
 export const PARAMS = {
   find_person: ['p_username'], my_invite: ['p_rotate'], resolve_invite: ['p_token'], request_friend: ['p_target'], friend_action: ['p_friendship', 'p_action'],
   block_person: ['p_target', 'p_block'], publish_plan: ['p_plan'], pause_sharing: [], get_friend_plan: ['p_target'], friends: [],
-  messages: ['p_friendship', 'p_before'], send_message: ['p_friendship', 'p_body'], course_social: ['p_course', 'p_term'],
+  messages: ['p_friendship', 'p_before', 'p_before_seq'], send_message: ['p_friendship', 'p_body', 'p_client_id'], course_social: ['p_course', 'p_term'],
   save_review: ['p_course', 'p_term', 'p_lecturer', 'p_overall', 'p_teaching', 'p_workload', 'p_assessments', 'p_body', 'p_advice', 'p_anonymous'], delete_review: ['p_id'],
   report_review: ['p_id', 'p_reason'], recent_reviews: [], my_reviews: [], classmate: ['p_course', 'p_term', 'p_groups', 'p_looking', 'p_note', 'p_visible'],
   create_group: ['p_course', 'p_term', 'p_title', 'p_purpose', 'p_mode', 'p_meeting', 'p_language', 'p_capacity'], group_action: ['p_group', 'p_action', 'p_person'], clean_plan: ['p_plan'],
@@ -29,9 +29,10 @@ const roomRpcs = {
   room_detail: [['uuid'], ['p_room']],
   room_create: [['text','text','text','text','text','int'], ['p_scope','p_campus','p_category','p_title','p_description','p_capacity']],
   room_join: [['uuid'], ['p_room']], room_leave: [['uuid'], ['p_room']],
-  room_messages: [['uuid','bigint'], ['p_room','p_before']], room_send: [['uuid','text'], ['p_room','p_body']],
+  room_messages: [['uuid','bigint'], ['p_room','p_before']], room_send: [['uuid','text','uuid'], ['p_room','p_body','p_client_id']],
   room_members: [['uuid'], ['p_room']], room_manage: [['uuid','text','uuid'], ['p_room','p_action','p_target']],
   room_mute: [['uuid','boolean'], ['p_room','p_muted']], room_report: [['uuid','text'], ['p_message','p_reason']],
+  posting_status: [[],[]], mod_posting: [['text','uuid','int','text'],['p_type','p_id','p_days','p_reason']], record_health: [['text','text','text'], ['p_area','p_kind','p_version']], health_summary: [[],[]], is_staff: [[], []], mod_queue: [['text','int'], ['p_status','p_limit']], mod_action: [['text','uuid','text','text'], ['p_type','p_id','p_action','p_reason']], mod_log: [['int'], ['p_limit']],
 };
 for (const [name, [types, params]] of Object.entries(roomRpcs)) { SIG[name] = types; PARAMS[name] = params; }
 
@@ -57,6 +58,8 @@ grant execute on function auth.uid() to anon, authenticated;
   await db.exec(readFileSync(`${REPO}/CampusMY-supabase-setup.sql`, 'utf8'));
   await db.exec(readFileSync(`${REPO}/CampusMY-social-setup.sql`, 'utf8'));
   await db.exec(readFileSync(`${REPO}/supabase/20261116_chat_rooms.sql`, 'utf8'));
+  await db.exec(readFileSync(`${REPO}/supabase/20261117_security_hardening.sql`, 'utf8'));
+  await db.exec(readFileSync(`${REPO}/supabase/20261117_operational_metrics.sql`, 'utf8'));
 
   // identity: null = no role switch (test code acting as the database owner), ANON = anonymous web visitor,
   // a user object = that signed-in account.
