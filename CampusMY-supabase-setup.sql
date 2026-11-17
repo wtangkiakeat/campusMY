@@ -1,6 +1,12 @@
 -- CampusMY v3. Run in your Supabase project's SQL Editor.
 -- Existing non-CampusMY tables and auth accounts are not changed.
 begin;
+-- Bootstrap files must not overwrite newer hardened function bodies.
+do $$ begin
+ if to_regclass('public.campusmy_rate_events') is not null then
+  raise exception 'Security hardening is already installed. Do not reapply legacy setup files; use the versioned hardening migration.' using errcode='55000';
+ end if;
+end $$;
 create table if not exists public.campusmy_profiles (
   user_id uuid primary key references auth.users(id) on delete cascade,
   username text not null check (username ~ '^[a-zA-Z][a-zA-Z0-9_]{2,23}$'),

@@ -1,15 +1,34 @@
-# Connect your Supabase project
+# CampusMY Supabase connection
 
-The supplied Project URL and publishable key are already in `dist/config.js`. Passwords and email confirmation are handled by Supabase Auth; CampusMY never writes passwords to a profile table.
+The public Project URL and publishable key are already in root `config.js`. Supabase Auth handles passwords and confirmation links; CampusMY does not store passwords in profile tables.
 
-1. In your project's **SQL Editor**, paste and run `setup.sql`. It creates only the three `campusmy_*` tables and an account-owned save function. RLS restricts each user's private rows to their account. There is no public profile directory.
-2. In **Authentication → URL Configuration**, set your app's Site URL. For the local preview use `http://127.0.0.1:4173/`. Add that exact URL and `http://localhost:4173/` to Redirect URLs. Add the final HTTPS site URL when deployed.
-3. Under the Email authentication provider, enable email/password sign-in and keep **Confirm email** and **Secure email change** enabled. Configure production SMTP before inviting real users. Password resets and email changes use Supabase's confirmation flows.
-4. Open My page → Create account. Use your own email; confirm the link. Check that My page shows the email as verified. A verified email is not proof of university enrollment.
-5. After signing in, save a profile, add a todo, and use timetable → Save online. Sign out and verify another account cannot see those records. Use Load online to retrieve a plan; the app asks before replacing local plans.
+## Existing live project
 
-The publishable key can access only what your Supabase policies permit. Do not place a database password, secret key or service_role key in config.js. Do not disable RLS to fix a permission error.
+The account, social and chat-room bootstraps were already applied. Do not run them again. The 4.3 review adds, in order:
 
-Database objects: `campusmy_profiles` (user ID, username, campus, settings), `campusmy_planners` (private plans and save version), `campusmy_todos` (private tasks). Email and password records stay in Supabase Auth. Profile creation happens after authentication; signup metadata is not used for authorization.
+1. `supabase/20261117_security_hardening.sql`
+2. `supabase/20261117_operational_metrics.sql`
 
-Boards, recent reviews and popular posts currently have honest empty states. No student posts, ratings, advertisements or badge counts are fabricated. No general community posting backend is enabled by this update.
+These production changes need owner approval and a backup before execution. Read [the rollout and recovery plan](docs/SECURITY.md). Staff appointment is a separate owner decision; no ordinary user can grant that role.
+
+## A new empty project only
+
+Run each full file in SQL Editor in this order:
+
+1. `CampusMY-supabase-setup.sql`
+2. `CampusMY-social-setup.sql`
+3. `supabase/20261116_chat_rooms.sql`
+4. `supabase/20261117_security_hardening.sql`
+5. `supabase/20261117_operational_metrics.sql`
+
+The first three are legacy bootstrap files. After hardening they deliberately refuse to run, preventing an accidental downgrade. Both versioned 17 November migrations can be reapplied.
+
+## Authentication settings
+
+Use `https://campusmy-website.vercel.app/` as the production Site URL and include that exact URL in Authentication > URL Configuration > Redirect URLs. Add `http://127.0.0.1:4173/` and `http://localhost:4173/` only for local development. Add any approved preview origin explicitly if testing email callbacks there. Avoid broad production wildcards. Existing confirmed accounts can sign in to a preview without changing email redirect settings.
+
+Keep Confirm email and Secure email change enabled. Review production SMTP, CAPTCHA/Auth abuse protection and redirect configuration before a public launch; do not change billing or disable confirmation to make a test pass. Use user-controlled browser steps for passwords, reset links, email-change confirmation and login codes. A confirmed mailbox is not verified university enrolment.
+
+Create/confirm an account, save a profile/task/private timetable, sign out, then verify another account cannot read them. Test optional friend sharing and revocation with two confirmed test accounts. Never put a database password, secret key or service-role key into `config.js`, chat, Git or screenshots.
+
+RLS protects owner tables; private social/room rows are exposed only through membership-checked RPCs. The publishable key is intentionally public and depends on these database checks. Review [security boundaries and limitations](docs/SECURITY.md) before inviting students.

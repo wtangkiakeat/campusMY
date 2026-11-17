@@ -2,5 +2,5 @@
 window.CAMPUS_CONFIG = Object.freeze({
   supabaseUrl: 'https://yqjdbkvbrfgpoizwwuyy.supabase.co',
   supabaseKey: 'sb_publishable_3eMyEBhQCxvqo6GPXajNOg_T65qF9Is',
-  version: '4.2.0'
+  version: '4.3.0'
 });

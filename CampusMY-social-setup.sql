@@ -1,5 +1,12 @@
 -- CampusMY optional friends, sharing, reviews, classmates and chat. Existing private tables remain protected.
 begin;
+-- Bootstrap files must not overwrite newer hardened function bodies.
+do $$ begin
+ if to_regclass('public.campusmy_rate_events') is not null then
+  raise exception 'Security hardening is already installed. Do not reapply legacy setup files; use the versioned hardening migration.' using errcode='55000';
+ end if;
+end $$;
+
 -- CampusMY social features. Existing profiles, private plans and todos are preserved.
 create table if not exists public.campusmy_social_courses (
  course_key text primary key, campus text not null, code text not null, name text not null
@@ -1324,7 +1331,7 @@ insert into public.campusmy_social_teachers(course_key,term,name) values
 ('Kampar|MPU3402','February 2026','Ms. Yuvashini a/p Salvamani (CFS)'),
 ('Kampar|ULSC1014','February 2026','Dr. Chou Wen Loong (FCS)'),
 ('Kampar|ULSC1024','February 2026','Dr. Er Lee Siong (FCS)'),
-('Kampar|ULSC1033','February 2026','Dr. Th’ng Bee Fu (FCS)'),
+('Kampar|ULSC1033','February 2026','Dr. Thâ€™ng Bee Fu (FCS)'),
 ('Kampar|ULSC1113','February 2026','Dr. Bin Mei Fern (FCS)'),
 ('Kampar|ULSC2033','February 2026','Dr. Yap Siew Chin (FCS)'),
 ('Kampar|MPU32073','February 2026','Mr Jeya'),
@@ -1334,4 +1341,16 @@ insert into public.campusmy_social_teachers(course_key,term,name) values
 ('Kampar|UAMA1004','February 2026','Mr Chan')
 on conflict do nothing;
 
+-- If the 20261117 hardening migration has already replaced these functions with three-argument versions,
+-- re-applying this file must not leave ambiguous overloads behind.
+do $$ begin
+ if exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='cm_messages' and p.pronargs=3) then
+  drop function if exists public.cm_messages(uuid,timestamptz);
+  grant execute on function public.cm_messages(uuid,timestamptz,bigint) to authenticated;
+ end if;
+ if exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='cm_send_message' and p.pronargs=3) then
+  drop function if exists public.cm_send_message(uuid,text);
+  grant execute on function public.cm_send_message(uuid,text,uuid) to authenticated;
+ end if;
+end $$;
 commit;
